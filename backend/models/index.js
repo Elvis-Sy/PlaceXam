@@ -1,13 +1,13 @@
 // models/index.js
 import { sequelize } from "../config/db.js";
-import User from "./userModel.js";
-import Affectation from "./affectationModel.js";
-import Calendrier from "./calendrierModel.js";
-import Exam from "./examModel.js";
-import Matiere from "./matiereModel.js";
-import Place from "./placeModel.js";
-import Salle from "./salleModel.js";
-import Supervision from "./supervisionModel.js";
+import User from "../src/models/userModel.js";
+import Affectation from "../src/models/affectationModel.js";
+import Calendrier from "../src/models/calendrierModel.js";
+import Exam from "../src/models/examModel.js";
+import Matiere from "../src/models/matiereModel.js";
+import Place from "../src/models/placeModel.js";
+import Salle from "../src/models/salleModel.js";
+import Supervision from "../src/models/supervisionModel.js";
 
 
 // ===================== Relations ===================== //
@@ -50,7 +50,7 @@ Exam.belongsTo(Matiere, { foreignKey: "matiereId" });
 
 // ========================================== //
 
-sequelize.sync({ alter: true })
+await sequelize.sync()
   .then(() => console.log("✅ Synchronisation à la base MySQL réussie !"))
   .catch(err => console.error("❌ Erreur de synchronosation :", err));
 

@@ -1,28 +1,29 @@
 import { DataTypes } from "sequelize";
-import { sequelize } from "../config/db.js";
+import { sequelize } from "../../config/db.js";
 
-const Affectation = sequelize.define("Affectation", {
+const Calendrier = sequelize.define("Calendrier", {
     id: { 
         type: DataTypes.UUID, 
         defaultValue: DataTypes.UUIDV4, 
         primaryKey: true 
     },
-    etudiantId: {
-        type: DataTypes.UUID,
-        allowNull: false,
+    start_time: { 
+        type: DataTypes.DATE, 
+        allowNull: false 
+    },
+    end_time: { 
+        type: DataTypes.DATE, 
+        allowNull: false 
     },
     examId: {
         type: DataTypes.UUID,
         allowNull: false,
     },
-    placeId: {
+    salleId: {
         type: DataTypes.UUID,
         allowNull: false,
     },
-    }, {
-        indexes: [{ unique: true, fields: ["etudiantId", "examId"] }]
-    }
-);
+});
 
 
-export default Affectation;
+export default Calendrier;

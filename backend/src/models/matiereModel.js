@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
-import { sequelize } from "../config/db.js";
+import { sequelize } from "../../config/db.js";
 
-const Salle = sequelize.define("Salle", {
+const Matiere = sequelize.define("Matiere", {
     id: { 
         type: DataTypes.UUID, 
         defaultValue: DataTypes.UUIDV4, 
@@ -9,11 +9,12 @@ const Salle = sequelize.define("Salle", {
     },
     label: { 
         type: DataTypes.STRING, 
-        allowNull: false },
-    capacite: { 
-        type: DataTypes.INTEGER, 
+        allowNull: false 
+    },
+    niveau: { 
+        type: DataTypes.ENUM("L1", "L2", "L3", "M1", "M2"), 
         allowNull: false 
     },
 });
 
-export default Salle;
+export default Matiere;
