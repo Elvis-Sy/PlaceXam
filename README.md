@@ -55,7 +55,7 @@ backend/<br>
 │ ├── routes/<br>
 │ └── services/<br>
 │<br>
-├── .env.local *(A créer et remplir soi-même par rapport à l'exemple)*<br>
+├── .env *(A créer et remplir soi-même par rapport à l'exemple)*<br>
 ├── .env.example<br>
 ├── package.json<br>
 └── server.js
