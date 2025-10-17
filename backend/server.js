@@ -1,4 +1,5 @@
 import express from "express";
+import { connectDB } from "./models";
 import cors from "cors";
 import "dotenv/config";
 
@@ -23,6 +24,7 @@ app.get('/', (req, res) => {
     });
 });
 
+connectDB(); // Initialisation DB
 app.listen(PORT, () => {
     console.log(`🌍 Listening on Port: ${PORT}`);
 });

@@ -101,6 +101,9 @@ backend/<br>
 | `jsonwebtoken` | Dépendance | Gestion et vérification des tokens JWT |
 | `nodemon` | DevDependency | Redémarrage automatique du serveur en développement |
 | `prettier` | DevDependency | Outil de formatage de code |
+| `sequelize` | Dépendance | ORM pour interagir avec des bases SQL |
+| `sequelize-cli` | DevDependency | Outil pour générer des modèles, migrations et seeds |
+| `mysql2` | Dépendance | Pilote utilisé pour établir la connexion avec MySQL |
 
 
 ---
