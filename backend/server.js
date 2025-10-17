@@ -1,5 +1,6 @@
 import express from "express";
-import { connectDB } from "./models";
+import "./models/index.js"
+import { connectDB } from "./config/db.js";
 import cors from "cors";
 import "dotenv/config";
 
