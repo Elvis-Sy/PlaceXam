@@ -80,4 +80,13 @@ export class AuthService {
       throw new Error("Refresh token invalide");
     }
   }
+
+  // Récupérer un utilisateur par ID
+  static async getProfil(id) {
+    const user = await User.findByPk(id, {
+      attributes: ["id", "fullname", "email", "role", "createdAt"],
+    });
+    if (!user) throw new Error("Utilisateur introuvable");
+    return user;
+  }
 }

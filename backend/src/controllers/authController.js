@@ -37,3 +37,12 @@ export const refreshToken = async (req, res) => {
         res.status(401).json({ message: err.message });
     }
 };
+
+export const getProfil = async (req, res) => {
+    try {
+        const result = await AuthService.getProfil(req.user.id);
+        res.status(200).json(result);
+    } catch (err) {
+        res.status(404).json({ message: err.message });
+    }
+};

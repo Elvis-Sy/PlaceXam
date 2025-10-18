@@ -21,9 +21,22 @@ const User = sequelize.define("User", {
         allowNull: false 
     },
     role: { 
-      type: DataTypes.ENUM("Admin", "etudiant", "surveillant"), 
+      type: DataTypes.ENUM("admin", "etudiant", "surveillant"), 
       allowNull: false 
     },
+});
+
+// Creation d'un utilisateur admin à la creation des tables
+User.afterSync(async () => {
+    const count = await User.count();
+    if (count === 0) {
+        await User.create({
+            fullname: "Administrateur",
+            email: "admin@example.com",
+            password: "$2b$10$SoD1UD4YtvFh8ze0AlZgZe6Mzf2MCIJMnHWZnuWVv4KcAWXiMJ86G",
+            role: "admin",
+        });
+    }
 });
 
 export default User;
