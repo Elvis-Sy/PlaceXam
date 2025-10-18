@@ -104,6 +104,9 @@ backend/<br>
 | `sequelize` | Dépendance | ORM pour interagir avec des bases SQL |
 | `sequelize-cli` | DevDependency | Outil pour générer des modèles, migrations et seeds |
 | `mysql2` | Dépendance | Pilote utilisé pour établir la connexion avec MySQL |
+| `multer` | Dépendance | Gère l’upload de fichiers |
+| `csv-parser` | Dépendance | Lecture et formatage des fichiers .csv |
+| `xlsx` | Dépendance | Lecture et formatage des fichiers .xlsx |
 
 
 ---
