@@ -14,7 +14,7 @@ import Supervision from "../src/models/supervisionModel.js";
 
 //// Étudiants <-> Affectations
 User.hasMany(Affectation, { foreignKey: "etudiantId" });
-Affectation.belongsTo(User, { foreignKey: "etudiantId" });
+Affectation.belongsTo(User, { as: "etudiant", foreignKey: "etudiantId" });
 
 //// Exam <-> Affectations
 Exam.hasMany(Affectation, { foreignKey: "examId" });
@@ -34,7 +34,7 @@ Supervision.belongsTo(Exam, { foreignKey: "examId" });
 
 //// Surveillant <-> Supervision
 User.hasMany(Supervision, { foreignKey: "surveillantId" });
-Supervision.belongsTo(User, { foreignKey: "surveillantId" });
+Supervision.belongsTo(User, { as: "surveillant", foreignKey: "surveillantId" });
 
 //// Exam <-> Calendrier
 Exam.hasMany(Calendrier, { foreignKey: "examId" });
