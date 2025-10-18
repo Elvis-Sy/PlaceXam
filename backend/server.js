@@ -1,4 +1,7 @@
 import express from "express";
+import api from "./src/api.js";
+import "./models/index.js"
+import { connectDB } from "./config/db.js";
 import cors from "cors";
 import "dotenv/config";
 
@@ -14,6 +17,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // Pour les données de formulaires
 app.use(cors(corsOption));
 
+app.use("/api", api); // Pour les differents routes
+
 app.get('/', (req, res) => {
     const env = process.env.NODE_ENV || 'development';
     res.status(200).json({ 
@@ -23,6 +28,7 @@ app.get('/', (req, res) => {
     });
 });
 
+connectDB(); // Initialisation DB
 app.listen(PORT, () => {
     console.log(`🌍 Listening on Port: ${PORT}`);
 });

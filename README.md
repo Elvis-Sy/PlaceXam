@@ -55,7 +55,7 @@ backend/<br>
 │ ├── routes/<br>
 │ └── services/<br>
 │<br>
-├── .env.local *(A créer et remplir soi-même par rapport à l'exemple)*<br>
+├── .env *(A créer et remplir soi-même par rapport à l'exemple)*<br>
 ├── .env.example<br>
 ├── package.json<br>
 └── server.js
@@ -101,6 +101,12 @@ backend/<br>
 | `jsonwebtoken` | Dépendance | Gestion et vérification des tokens JWT |
 | `nodemon` | DevDependency | Redémarrage automatique du serveur en développement |
 | `prettier` | DevDependency | Outil de formatage de code |
+| `sequelize` | Dépendance | ORM pour interagir avec des bases SQL |
+| `sequelize-cli` | DevDependency | Outil pour générer des modèles, migrations et seeds |
+| `mysql2` | Dépendance | Pilote utilisé pour établir la connexion avec MySQL |
+| `multer` | Dépendance | Gère l’upload de fichiers |
+| `csv-parser` | Dépendance | Lecture et formatage des fichiers .csv |
+| `xlsx` | Dépendance | Lecture et formatage des fichiers .xlsx |
 
 
 ---
