@@ -50,3 +50,20 @@ export const deleteMatiere = async (req, res) => {
     res.status(404).json({ message: error.message });
   }
 };
+
+export const importMatiere = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Aucun fichier n'a été importé" });
+    }
+
+    const inserted = await MatiereService.importMatiere(req.file.path);
+    res.status(200).json({
+      message: `${inserted.length} matières importées avec succès`,
+      data: inserted
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erreur lors de l'importation", error: error.message });
+  }
+};

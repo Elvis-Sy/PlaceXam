@@ -1,4 +1,5 @@
 import Matiere from "../models/matiereModel.js";
+import { parseFile } from "../utils/importHelper.js";
 
 export class MatiereService {
 
@@ -42,5 +43,25 @@ export class MatiereService {
 
     await matiere.destroy();
     return { message: "Matière supprimée avec succès" };
+  }
+
+  // Creation en masse via un fichier excel (csv, xlsx)
+  static async importMatiere(filePath) {
+    const data = await parseFile(filePath);
+    const inserted = [];
+
+    for (const row of data) {
+      const { label, niveau } = row;
+      if (!label || !niveau) continue;
+
+      // Vérifie s'il existe déjà
+      const exists = await Matiere.findOne({ where: { label, niveau } });
+      if (exists) continue;
+
+      const matiere = await Matiere.create({ label, niveau });
+      inserted.push(matiere);
+    }
+
+    return inserted;
   }
 }

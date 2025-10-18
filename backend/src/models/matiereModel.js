@@ -15,6 +15,15 @@ const Matiere = sequelize.define("Matiere", {
         type: DataTypes.ENUM("L1", "L2", "L3", "M1", "M2"), 
         allowNull: false 
     },
-});
+},
+{
+  indexes: [
+    {
+      unique: true,
+      fields: ['label', 'niveau']
+    }
+  ]
+}
+);
 
 export default Matiere;
