@@ -21,7 +21,7 @@ Exam.hasMany(Affectation, { foreignKey: "examId" });
 Affectation.belongsTo(Exam, { foreignKey: "examId" });
 
 //// Salle <-> Place
-Salle.hasMany(Place, { foreignKey: "salleId" });
+Salle.hasMany(Place, { foreignKey: "salleId", onDelete: "CASCADE" });
 Place.belongsTo(Salle, { foreignKey: "salleId" });
 
 //// Place <-> Affectation
