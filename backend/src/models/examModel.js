@@ -11,6 +11,10 @@ const Exam = sequelize.define("Exam", {
         type: DataTypes.DATE, 
         allowNull: false 
     },
+    duree: { 
+        type: DataTypes.INTEGER, // en minutes
+        allowNull: false 
+    },
     matiereId: {
         type: DataTypes.UUID,
         allowNull: false,
