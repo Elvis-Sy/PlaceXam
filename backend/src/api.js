@@ -5,6 +5,7 @@ import matiereRouter from "./routes/matiereRoute.js";
 import examRouter from "./routes/examRoute.js";
 import calendrierRouter from "./routes/calendrierRoute.js";
 import salleRouter from "./routes/salleRoute.js";
+import affectationRouter from "./routes/affectationRoute.js";
 
 const api = express.Router();
 
@@ -14,5 +15,6 @@ api.use("/matieres", matiereRouter);
 api.use("/exams", examRouter);
 api.use("/calendriers", calendrierRouter);
 api.use("/salles", salleRouter);
+api.use("/affectations", affectationRouter)
 
 export default api;

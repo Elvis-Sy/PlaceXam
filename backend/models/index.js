@@ -37,7 +37,7 @@ User.hasMany(Supervision, { foreignKey: "surveillantId" });
 Supervision.belongsTo(User, { as: "surveillant", foreignKey: "surveillantId" });
 
 //// Exam <-> Calendrier
-Exam.hasMany(Calendrier, { foreignKey: "examId" });
+Exam.hasMany(Calendrier, { foreignKey: "examId", onDelete: "CASCADE" });
 Calendrier.belongsTo(Exam, { foreignKey: "examId" });
 
 //// Salle <-> Calendrier
@@ -45,7 +45,7 @@ Salle.hasMany(Calendrier, { foreignKey: "salleId" });
 Calendrier.belongsTo(Salle, { foreignKey: "salleId" });
 
 //// Matiere <-> Exam : 1 matière peut avoir plusieurs sessions
-Matiere.hasMany(Exam, { foreignKey: "matiereId" });
+Matiere.hasMany(Exam, { foreignKey: "matiereId", onDelete: "CASCADE" });
 Exam.belongsTo(Matiere, { foreignKey: "matiereId" });
 
 // ========================================== //

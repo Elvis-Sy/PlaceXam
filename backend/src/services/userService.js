@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 export class UserService {
 
     // Créer un utilisateur (ex: par un admin)
-    static async createUser({ fullname, email, password, role }) {
+    static async createUser({ fullname, email, password, role, niveau }) {
         const existing = await User.findOne({ where: { email } });
         if (existing) throw new Error("Cet email est déjà utilisé");
 
@@ -14,6 +14,7 @@ export class UserService {
             fullname,
             email,
             password: hashedPassword,
+            niveau,
             role,
         });
 
@@ -23,7 +24,7 @@ export class UserService {
     // Récupérer tous les utilisateurs
     static async getAllUsers(adminId) {
         const users = await User.findAll({
-            attributes: ["id", "fullname", "email", "role", "createdAt"],
+            attributes: ["id", "fullname", "email", "role", "niveau", "createdAt"],
             where: {
                 id: { [Op.ne]: adminId } // exclut l'admin grace a son ID
             },
@@ -35,7 +36,7 @@ export class UserService {
     // Récupérer un utilisateur par ID
     static async getUserById(id) {
         const user = await User.findByPk(id, {
-            attributes: ["id", "fullname", "email", "role", "createdAt"],
+            attributes: ["id", "fullname", "email", "role", "niveau", "createdAt"],
         });
         if (!user) throw new Error("Utilisateur introuvable");
         return user;
