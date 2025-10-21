@@ -74,6 +74,11 @@ export class SalleService {
     const salle = await Salle.findByPk(id);
     if (!salle) throw new Error("Salle introuvable");
 
+    const calendrierExistant = await Calendrier.findOne({ where: { salleId: id } });
+    if (calendrierExistant) {
+      throw new Error("Impossible de supprimer la salle : elle est utilisée dans un calendrier.");
+    }
+
     await Place.destroy({ where: { salleId: id } });
     await salle.destroy();
 
