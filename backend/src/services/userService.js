@@ -17,7 +17,6 @@ export class UserService {
             niveau,
             role,
         });
-
         return user;
     }
 
@@ -76,4 +75,61 @@ export class UserService {
         await user.update(data);
         return user;
     }
+
+        static async importEtudiant(etudiants) {
+    const createdUsers = [];
+
+    for (const etudiant of etudiants) {
+        const { fullname, email, niveau } = etudiant;
+
+        // 1️⃣ Vérification des champs essentiels
+        if (!fullname || !email || !niveau) {
+        console.warn(`Donnée incomplète ignorée :`, etudiant);
+        continue;
+        }
+
+        // 2️⃣ Vérifier si déjà existant
+        const existing = await User.findOne({ where: { email } });
+        if (existing) continue;
+
+        // 3️⃣ Générer un mot de passe aléatoire
+        const password = Math.random().toString(36).slice(-8);
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // 4️⃣ Créer l'utilisateur
+        const newUser = await User.create({
+        fullname,
+        email,
+        password: hashedPassword,
+        role: "etudiant",
+        niveau,
+        });
+
+        createdUsers.push({ ...newUser.get(), plainPassword: password });
+    }
+
+    return createdUsers;
+    }
+
+    static async searchUsers(query) {
+    const users = await User.findAll({
+      where: {
+        [Op.or]: [
+          { fullname: { [Op.like]: `%${query}%` } },
+          { email: { [Op.like]: `%${query}%` } },
+          { niveau: { [Op.like]: `%${query}%` } },
+        ],
+      },
+      attributes: ["id", "fullname", "email", "role", "niveau", "createdAt"],
+    });
+
+    console.log("Recherche pour :", query);
+    console.log("Résultats trouvés :", users.length);
+
+    if (users.length === 0) {
+      throw new Error("Utilisateur introuvable");
+    }
+
+    return users;
+  }
 }
