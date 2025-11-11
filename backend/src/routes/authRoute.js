@@ -13,6 +13,6 @@ authRouter.post("/signup", signupByEmail);
 authRouter.post("/login", loginByEmail);
 authRouter.post("/refresh-token", refreshToken);
 
-authRouter.get("/profile", authenticate, getProfil); // Necessite d'être connecté
+authRouter.get("/profile", authenticate, getProfil);
 
 export default authRouter;
