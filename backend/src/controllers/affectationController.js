@@ -55,3 +55,14 @@ export const verifierSalle = async (req, res) => {
     }
 }
 
+export const getSalleOccupancy = async (req, res) => {
+  try {
+    const { salleId } = req.params;
+    const { date } = req.query; // ex: 2025-11-12
+    const result = await AffectationService.getOccupancyBySalle(salleId, date);
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+

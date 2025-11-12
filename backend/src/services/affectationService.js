@@ -5,6 +5,7 @@ import Exam from "../models/examModel.js";
 import Calendrier from "../models/calendrierModel.js";
 import Salle from "../models/salleModel.js";
 import Place from "../models/placeModel.js";
+import Matiere from "../models/matiereModel.js";
 
 export class AffectationService {
 
@@ -247,7 +248,13 @@ export class AffectationService {
     return Affectation.findAll({
       include: [
         { model: User, as: "etudiant", attributes: ["id", "fullname", "niveau"] },
-        { model: Exam, attributes: ["id", "duree", "date"] },
+        {
+          model: Exam,
+          attributes: ["id", "duree", "date"],
+          include: [
+            { model: Matiere, as: "matiere", attributes: ["id", "label", "niveau"] }
+          ]
+        },
         {
           model: Place,
           include: [{ model: Salle, attributes: ["label"] }],
@@ -310,4 +317,69 @@ export class AffectationService {
 
 //     return { message: "Affectation annulée avec succès" };
 //   }
+
+  // Nouvelle méthode : occupation par salle
+  static async getOccupancyBySalle(salleId, date) {
+    // date expected 'YYYY-MM-DD' or ISO string (we consider whole day)
+    if (!salleId) throw new Error("salleId requis");
+
+    // construire intervalle début/fin de journée
+    const day = date ? new Date(date) : new Date();
+    const start = new Date(day);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(day);
+    end.setHours(23, 59, 59, 999);
+
+    // récupérer toutes les places de la salle
+    const places = await Place.findAll({
+      where: { salleId },
+      order: [["numero", "ASC"]],
+      attributes: ["id", "numero"],
+    });
+
+    // récupérer toutes les affectations pour cette salle et cette journée
+    const affectations = await Affectation.findAll({
+      include: [
+        {
+          model: Place,
+          where: { salleId },
+          attributes: ["id", "numero"],
+        },
+        {
+          model: Exam,
+          where: { date: { [Op.between]: [start, end] } },
+          attributes: ["id", "date", "duree"],
+        },
+        {
+          model: User,
+          as: "etudiant",
+          attributes: ["id", "fullname", "email", "niveau"],
+        }
+      ],
+    });
+
+    // build map placeId -> affectation (if multiple exams same day, pick one or return array)
+    const map = {}; // placeId -> { affectation info }
+    for (const a of affectations) {
+      const p = a.Place;
+      if (!p) continue;
+      map[p.id] = {
+        etudiant: a.etudiant ? a.etudiant.get?.() ?? a.etudiant : a.etudiant,
+        exam: a.Exam ? a.Exam.get?.() ?? a.Exam : a.Exam,
+        affectationId: a.id,
+      };
+    }
+
+    // return places with status
+    const result = places.map((p) => ({
+      id: p.id,
+      numero: p.numero,
+      occupied: Boolean(map[p.id]),
+      occupant: map[p.id]?.etudiant ?? null,
+      exam: map[p.id]?.exam ?? null,
+      affectationId: map[p.id]?.affectationId ?? null,
+    }));
+
+    return { salleId, date: start.toISOString(), places: result };
+  }
 }

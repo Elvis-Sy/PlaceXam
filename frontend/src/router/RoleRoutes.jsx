@@ -40,7 +40,7 @@ export default function RoleRoutes({ role, allowedRoles, children, fallback = "/
   // If a logged-in user visits any auth page, redirect them to their dashboard
   if (user && location.pathname.startsWith("/auth")) {
     const mapping = {
-      admin: "/admin/dashboard",
+      admin: "/admin",
       surveillant: "/surveillant",
       etudiant: "/etudiant",
     };

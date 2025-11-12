@@ -1,14 +1,17 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwind from "@tailwindcss/vite";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(),
+    tailwind(),
+  ],
   server: {
-    host: "127.0.0.1", // ✅ évite le bug IPv6 (::1)
+    host: "127.0.0.1",
     port: 5174,
-    strictPort: false, // autorise à changer de port si 3001 est occupé
-    open: true,        // ouvre automatiquement le navigateur
+    strictPort: false, 
+    open: true, 
   },
   preview: {
     port: 5000,

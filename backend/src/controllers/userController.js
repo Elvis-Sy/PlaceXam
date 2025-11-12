@@ -99,8 +99,6 @@ export const importEtudiant = async (req, res) => {
     console.error("Erreur import:", err);
     res.status(500).json({ message: err.message });
   }
-  
-
 };
 
 export const searchUsers = async (req, res) => {

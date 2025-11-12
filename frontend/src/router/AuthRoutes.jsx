@@ -1,21 +1,21 @@
 import React from "react";
-import { Route, Navigate } from "react-router-dom";
+import { Route, Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
-import Login from "../pages/Auth/Login";
+import Login from "../pages/Auth/Login.jsx";
 import Signup from "../pages/Auth/Signup";
 import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
 
-export default function AuthRoutes() {
+/**
+ * AuthGuard: si user connecté -> redirige vers son dashboard,
+ * sinon rend <Outlet/> pour afficher les routes enfants (/auth/login, /auth/signup...)
+ */
+function AuthGuard() {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    // On peut retourner null ou un petit loader si tu préfères
-    return null;
-  }
+  if (loading) return null; // ou un petit loader si tu veux
 
-  // Si l'utilisateur est connecté, rediriger tous les /auth/* vers le dashboard adapté
   if (user) {
     const mapping = {
       admin: "/admin/dashboard",
@@ -23,17 +23,23 @@ export default function AuthRoutes() {
       etudiant: "/etudiant",
     };
     const target = mapping[user.role] || "/";
-    // Catch-all pour tout /auth/* -> redirection
-    return <Route path="/auth/*" element={<Navigate to={target} replace />} />;
+    return <Navigate to={target} replace />;
   }
 
-  // Sinon exposer les routes d'authentification
-  return (
-    <>
-      <Route path="/auth/login" element={<Login />} />
-      <Route path="/auth/signup" element={<Signup />} />
-      <Route path="/auth/forgot" element={<ForgotPassword />} />
-      <Route path="/auth/reset" element={<ResetPassword />} />
-    </>
-  );
+  return <Outlet />;
 }
+
+/**
+ * Exporte un fragment contenant des <Route> statiques.
+ * Ces <Route> seront insérées directement dans <Routes> (donc validées).
+ */
+export default (
+  <>
+    <Route path="/auth" element={<AuthGuard />}>
+      <Route path="login" element={<Login />} />
+      <Route path="signup" element={<Signup />} />
+      <Route path="forgot" element={<ForgotPassword />} />
+      <Route path="reset" element={<ResetPassword />} />
+    </Route>
+  </>
+);
