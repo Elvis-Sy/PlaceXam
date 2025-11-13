@@ -7,7 +7,7 @@ import {
   deleteUser,
   updateProfile,
   importEtudiant,
-  searchUsers
+  searchUsers,
 } from "../controllers/userController.js";
 import { authenticate, authorizeRoles } from "../middlewares/authMiddleware.js";
 import { uploadFile } from "../middlewares/mutlerMiddleware.js";

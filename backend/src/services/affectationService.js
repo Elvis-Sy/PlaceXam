@@ -252,7 +252,7 @@ export class AffectationService {
           model: Exam,
           attributes: ["id", "duree", "date"],
           include: [
-            { model: Matiere, as: "matiere", attributes: ["id", "label", "niveau"] }
+            { model: Matiere, as: "Matiere", attributes: ["id", "label", "niveau"] }
           ]
         },
         {
