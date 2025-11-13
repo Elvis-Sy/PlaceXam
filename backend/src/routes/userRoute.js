@@ -8,8 +8,6 @@ import {
   updateProfile,
   importEtudiant,
   searchUsers,
-  forgotPassword,
-  resetPassword
 } from "../controllers/userController.js";
 import { authenticate, authorizeRoles } from "../middlewares/authMiddleware.js";
 import { uploadFile } from "../middlewares/mutlerMiddleware.js";
@@ -31,7 +29,5 @@ userRouter.post("/import", uploadFile, authorizeRoles("admin"), importEtudiant);
 
 // Accès global
 userRouter.patch("/profile", updateProfile);
-userRouter.post("/forgot-password", forgotPassword); 
-userRouter.post("/reset-password", resetPassword);
 
 export default userRouter;

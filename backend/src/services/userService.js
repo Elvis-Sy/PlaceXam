@@ -3,8 +3,6 @@ import User from "../models/userModel.js";
 import bcrypt from "bcrypt";
 import { sendEmailLogin } from "../utils/emailUtils.js";
 
-const TOKEN_EXPIRATION_DURATION = 3600000; // 1 heure en millisecondes
-
 const generateRandomPassword = (length = 10) => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
     let password = '';
@@ -170,57 +168,5 @@ export class UserService {
         return users;
     }
 
-    static async forgotPassword(email) {
-        const user = await User.findOne({ where: { email } });
-        if (!user) {
-            throw new Error("Utilisateur introuvable avec cet e-mail.");
-        }
-
-        const resetToken = crypto.randomBytes(20).toString('hex');
-        const expirationDate = new Date(Date.now() + TOKEN_EXPIRATION_DURATION);
-        
-        user.resetPasswordToken = resetToken;
-        user.resetPasswordExpires = expirationDate;
-        await user.save();
-        
-        // Assurez-vous que votre route frontend gère le jeton (ex: /reset-password/TOKEN_ICI)
-        const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password/${resetToken}`;
-
-        try {
-            await sendEmailResetPassword({
-                to: user.email,
-                resetLink: resetLink,
-            });
-            
-            return { success: true, message: "E-mail de réinitialisation envoyé avec succès." };
-        } catch (error) {
-            // En cas d'échec d'envoi d'e-mail, vous pouvez choisir d'annuler le jeton en DB
-            user.resetPasswordToken = null;
-            user.resetPasswordExpires = null;
-            await user.save();
-            console.error("Échec de l'envoi de l'e-mail de réinitialisation:", error);
-            throw new Error("Erreur serveur lors de l'envoi de l'e-mail de réinitialisation.");
-        }
-    }
-
-    async resetPassword(token, newPassword) {
-        const user = await User.findOne({ 
-            where: { 
-                resetPasswordToken: token,
-                resetPasswordExpires: { [Op.gt]: new Date() } // Vérifie que le token n'a pas expiré
-            } 
-        });
-
-        if (!user) {
-            throw new Error("Token invalide ou expiré.");
-        }
-
-        user.password = await bcrypt.hash(newPassword, 10);
-        user.resetPasswordToken = null;
-        user.resetPasswordExpires = null;
-        await user.save();
-
-        return { success: true, message: "Mot de passe réinitialisé avec succès." };
-    }
 
 }
