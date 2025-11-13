@@ -64,3 +64,5 @@ export {
   Salle,
   Supervision,
 };
+
+sequelize.options.logging = console.log;

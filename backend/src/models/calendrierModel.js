@@ -18,11 +18,12 @@ const Calendrier = sequelize.define("Calendrier", {
     examId: {
         type: DataTypes.UUID,
         allowNull: false,
-    },
-    salleId: {
-        type: DataTypes.UUID,
-        allowNull: false,
-    },
+    }
+    ,
+    // salleId: {
+    //     type: DataTypes.UUID,
+    //     allowNull: false,
+    // },
 });
 
 

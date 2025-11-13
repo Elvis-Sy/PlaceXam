@@ -6,9 +6,11 @@ import { Op } from "sequelize";
 export class CalendrierService {
 
     // Créer un calendrier
-    static async createCalendrier({ time, examId, salleId }) {
-        const salle = await Salle.findByPk(salleId);
-        if (!salle) throw new Error("Salle introuvable");
+    static async createCalendrier({ time, examId
+        // , salleId
+         }) {
+        // const salle = await Salle.findByPk(salleId);
+        // if (!salle) throw new Error("Salle introuvable");
 
         const exam = await Exam.findByPk(examId);
         if (!exam) throw new Error("Examen introuvable");
@@ -27,7 +29,7 @@ export class CalendrierService {
 
         const conflit = await Calendrier.findOne({
             where: {
-                salleId,
+                // salleId,
                 start_time: { [Op.lt]: end_time }, // début du nouvel examen < fin existante
                 end_time: { [Op.gt]: start_time }, // fin du nouvel examen > début existant
             },
@@ -37,7 +39,7 @@ export class CalendrierService {
             start_time,
             end_time,
             examId,
-            salleId,
+            // salleId,
         });
 
         return calendrier;
@@ -48,7 +50,7 @@ export class CalendrierService {
         const calendriers = await Calendrier.findAll({
         include: [
             { model: Exam },
-            { model: Salle },
+            // { model: Salle },
         ],
         order: [["start_time", "ASC"]],
         });
@@ -60,7 +62,7 @@ export class CalendrierService {
         const calendrier = await Calendrier.findByPk(id, {
         include: [
             { model: Exam },
-            { model: Salle },
+            // { model: Salle },
         ],
         });
         if (!calendrier) throw new Error("Calendrier introuvable");
@@ -85,10 +87,10 @@ export class CalendrierService {
             end_time = new Date(start_time.getTime() + exam.duree * 60 * 1000);
         }
 
-        const salleIdToCheck = data.salleId || calendrier.salleId;
+        // const salleIdToCheck = data.salleId || calendrier.salleId;
         const conflict = await Calendrier.findOne({
         where: {
-                salleId: salleIdToCheck,
+                // salleId: salleIdToCheck,
                 id: { [Op.ne]: id },
                 start_time: { [Op.lt]: end_time },
                 end_time: { [Op.gt]: start_time },
@@ -102,7 +104,7 @@ export class CalendrierService {
 
         // Mettre à jour le calendrier, end_time compris
         await calendrier.update({
-            salleId: salleIdToCheck,
+            // salleId: salleIdToCheck,
             start_time,
             end_time,
         });

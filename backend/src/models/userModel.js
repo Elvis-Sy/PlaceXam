@@ -28,6 +28,14 @@ const User = sequelize.define("User", {
       type: DataTypes.ENUM("admin", "etudiant", "surveillant"), 
       allowNull: false 
     },
+    resetPasswordToken: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    resetPasswordExpires: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    }
 });
 
 // Creation d'un utilisateur admin à la creation des tables
