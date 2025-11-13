@@ -41,6 +41,7 @@ export default function Salles() {
   const [planSalle, setPlanSalle] = useState(null);
   const [planDate, setPlanDate] = useState(new Date().toISOString().slice(0, 10));
   const [occupancy, setOccupancy] = useState(null);
+  const [hoveredPlaceId, setHoveredPlaceId] = useState(null);
 
   useEffect(() => {
     load();
@@ -102,6 +103,7 @@ export default function Salles() {
   async function openPlan(salle) {
     setPlanSalle(salle);
     setPlanOpen(true);
+    setHoveredPlaceId(null);
     await loadOccupancy(salle, planDate);
   }
 
@@ -199,7 +201,7 @@ export default function Salles() {
       </Modal>
 
       {/* Plan modal */}
-      <Modal open={planOpen} onClose={() => {setPlanOpen(false); setOccupancy(null);}} title={planSalle?.label ?? "Plan"}>
+      <Modal open={planOpen} onClose={() => {setPlanOpen(false); setOccupancy(null); setHoveredPlaceId(null);}} title={planSalle?.label ?? "Plan"}>
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <label className="text-sm">Date:</label>
@@ -210,13 +212,70 @@ export default function Salles() {
           <div>
             {!occupancy && <div className="text-sm text-slate-500">Aucune donnée — actualiser pour charger l'occupation.</div>}
             {occupancy && (
-              <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(12, Math.ceil(Math.sqrt(planSalle.capacite || 1)))}, 1fr)` }}>
-                {occupancy.places.map((p) => (
-                  <div key={p.id} className={`p-3 rounded-lg border shadow-sm text-center cursor-pointer ${p.occupied ? "bg-red-100 text-red-800" : "bg-emerald-50 text-emerald-800"}`}>
-                    <div className="text-lg font-bold">{p.numero}</div>
-                    <div className="text-xs mt-2">{p.occupied ? (p.occupant?.fullname ?? p.occupant?.email) : "Libre"}</div>
-                  </div>
-                ))}
+              <div className="relative" style={{ gridTemplateColumns: `repeat(${Math.min(12, Math.ceil(Math.sqrt(planSalle.capacite || 1)))}, 1fr)` }}>
+                <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(12, Math.ceil(Math.sqrt(planSalle.capacite || 1)))}, 1fr)` }}>
+                  {occupancy.places.map((p) => (
+                    <div
+                      key={p.id}
+                      onClick={() => setHoveredPlaceId(hoveredPlaceId === p.id ? null : p.id)}
+                      onMouseEnter={() => hoveredPlaceId !== p.id && setHoveredPlaceId(null)}
+                      onMouseLeave={() => hoveredPlaceId !== p.id && setHoveredPlaceId(null)}
+                      className={`p-3 rounded-lg border shadow-sm text-center cursor-pointer transition-all duration-200 ${
+                        hoveredPlaceId === p.id
+                          ? "absolute z-20 scale-125 shadow-2xl"
+                          : `relative scale-100 hover:scale-110`
+                      } ${
+                        p.occupied
+                          ? "bg-red-100 text-red-800 hover:bg-red-150"
+                          : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                      }`}
+                      style={hoveredPlaceId === p.id ? { inset: 0 } : {}}
+                    >
+                      <div className="text-lg font-bold">{p.numero}</div>
+                      
+                      {/* Affichage normal */}
+                      {hoveredPlaceId !== p.id && (
+                        <div className="text-xs mt-2">
+                          {p.occupied ? (p.occupant?.fullname ?? p.occupant?.email ?? "Assigné") : "Libre"}
+                        </div>
+                      )}
+
+                      {/* Affichage au hover (juste le niveau) */}
+                      {hoveredPlaceId === null && p.occupied && p.occupant?.niveau && (
+                        <div className="text-xs mt-2">
+                          <div className="text-xs bg-slate-200 px-2 py-1 rounded inline-block">
+                            {p.occupant.niveau}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Affichage au click (tous les détails) */}
+                      {hoveredPlaceId === p.id && p.occupied && p.occupant && (
+                        <div className="text-xs mt-2 space-y-1">
+                          <div className="font-semibold">{p.occupant.fullname}</div>
+                          <div>{p.occupant.email}</div>
+                          {p.occupant.niveau && (
+                            <div className="text-xs bg-slate-200 px-2 py-1 rounded inline-block">
+                              {p.occupant.niveau}
+                            </div>
+                          )}
+                          {p.exam && (
+                            <div className="text-xs mt-1">
+                              <div className="font-semibold">Examen</div>
+                              <div>ID: {p.exam.id}</div>
+                              <div>{new Date(p.exam.date).toLocaleDateString("fr-FR")}</div>
+                              <div>{p.exam.duree} min</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {hoveredPlaceId === p.id && !p.occupied && (
+                        <div className="text-xs mt-2 italic">Libre</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
