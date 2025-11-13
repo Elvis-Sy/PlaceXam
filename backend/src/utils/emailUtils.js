@@ -100,3 +100,57 @@ export const sendEmailLogin = async ({ to, MOT_DE_PASSE_DEFAUT, role, text }) =>
         throw new Error(`Échec de l'envoi de l'e-mail via Gmail.`);
     }
 };
+
+export const sendEmailResetPassword = async ({ to, resetLink, from }) => {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        console.warn('⚠️ AVERTISSEMENT: Configuration EMAIL incomplète. E-mail non envoyé.');
+        return; 
+    }
+
+    const html = `
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                /* ... (Styles CSS) ... */
+                .button { background-color: #f44336; color: white !important; } /* Couleur différente pour le reset */
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h2>Réinitialisation de votre mot de passe</h2>
+                </div>
+                <div class="content">
+                    <p>
+                        Vous avez demandé à réinitialiser votre mot de passe.
+                    </p>
+                    <p style="text-align: center; margin: 30px 0;">
+                        <a href="${resetLink}" class="button" target="_blank">Réinitialiser mon mot de passe</a>
+                    </p>
+                    <p>
+                        Ce lien expirera dans une heure. Si vous n'avez pas demandé cette réinitialisation, veuillez ignorer cet e-mail.
+                    </p>
+                </div>
+                <div class="footer">
+                    </div>
+            </div>
+        </body>
+        </html>
+    `;
+
+    try {
+        const mailOptions = {
+            from: from || process.env.EMAIL_FROM,
+            to: to,
+            subject: "Réinitialisation de votre mot de passe",
+            html: html,
+            text: "Veuillez cliquer sur le lien : " + resetLink,
+        };
+
+        await transporter.sendMail(mailOptions);
+    } catch (error) {
+        throw error;
+    }
+};

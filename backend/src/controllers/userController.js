@@ -110,5 +110,26 @@ export const searchUsers = async (req, res) => {
   catch (err) {
     res.status(500).json({ message: err.message });
   }
-  
+};
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    await UserService.forgotPassword(email);
+    res.status(200).json({ 
+        message: "Si un compte est associé à cet e-mail, un lien de réinitialisation y a été envoyé." 
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    await UserService.resetPassword(token, newPassword);
+    res.status(200).json({ message: "Mot de passe réinitialisé avec succès." });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 };
