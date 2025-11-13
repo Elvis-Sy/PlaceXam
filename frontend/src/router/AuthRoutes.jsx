@@ -5,7 +5,7 @@ import { useAuth } from "../hooks/useAuth";
 import Login from "../pages/Auth/Login.jsx";
 import Signup from "../pages/Auth/Signup";
 import ForgotPassword from "../pages/Auth/ForgotPassword";
-import ResetPassword from "../pages/Auth/ResetPassword";
+import ResetPasswordPage from "../pages/Auth/ResetPassword.jsx";
 
 /**
  * AuthGuard: si user connecté -> redirige vers son dashboard,
@@ -39,7 +39,7 @@ export default (
       <Route path="login" element={<Login />} />
       <Route path="signup" element={<Signup />} />
       <Route path="forgot" element={<ForgotPassword />} />
-      <Route path="reset" element={<ResetPassword />} />
+      <Route path="reset-password/:token" element={<ResetPasswordPage />} />
     </Route>
   </>
 );
