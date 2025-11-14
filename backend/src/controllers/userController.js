@@ -112,3 +112,21 @@ export const searchUsers = async (req, res) => {
   }
   
 };
+
+export const getUsersByRole = async (req, res) => {
+  try {
+    const { role } = req.params;
+    const adminId = req.user.id;
+    
+    // Valider le rôle
+    const validRoles = ["etudiant", "surveillant", "admin"];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ message: "Rôle invalide" });
+    }
+    
+    const result = await UserService.getUsersByRole(role, adminId);
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

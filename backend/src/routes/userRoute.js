@@ -7,7 +7,8 @@ import {
   deleteUser,
   updateProfile,
   importEtudiant,
-  searchUsers
+  searchUsers,
+  getUsersByRole
 } from "../controllers/userController.js";
 import { authenticate, authorizeRoles } from "../middlewares/authMiddleware.js";
 import { uploadFile } from "../middlewares/mutlerMiddleware.js";
@@ -21,6 +22,7 @@ userRouter.use(authenticate); // Il faut d'abord être connecté
 userRouter.post("/", authorizeRoles("admin"), createUser);
 userRouter.get("/", authorizeRoles("admin"), getAllUsers);
 userRouter.get("/search", authorizeRoles("admin"), searchUsers);
+userRouter.get("/:role", authorizeRoles("admin"), getUsersByRole); 
 userRouter.get("/:id", authorizeRoles("admin"), getUserById);
 userRouter.patch("/:id", authorizeRoles("admin"), updateUser);
 userRouter.delete("/:id", authorizeRoles("admin"), deleteUser);
