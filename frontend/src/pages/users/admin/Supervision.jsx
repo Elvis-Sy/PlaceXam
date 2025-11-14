@@ -4,7 +4,7 @@ import {
   createSupervision,
   updateSupervision,
   deleteSupervision,
-} from "../../../services/supervisionService";
+} from "../../../services/supervisions";
 import { Plus, Trash2, Edit, X } from "lucide-react";
 
 function IconButton({ children, className = "", ...props }) {

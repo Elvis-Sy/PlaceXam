@@ -165,8 +165,18 @@ export class UserService {
         throw new Error("Utilisateur introuvable");
         }
 
+    return users;
+  }
+
+      static async getUsersByRole(role, adminId) {
+        const users = await User.findAll({
+            where: {
+                role,
+                id: { [Op.ne]: adminId } // exclut l'admin
+            },
+            attributes: ["id", "fullname", "email", "role", "niveau", "createdAt"],
+            order: [["createdAt", "DESC"]],
+        });
         return users;
     }
-
-
 }

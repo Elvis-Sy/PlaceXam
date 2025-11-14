@@ -15,11 +15,15 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import Divider from '@mui/material/Divider';
 import LogoutIcon from '@mui/icons-material/Logout';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import Collapse from '@mui/material/Collapse';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [usersMenuOpen, setUsersMenuOpen] = useState(false);
 
   const toggleDrawer = (open) => (event) => {
     if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
@@ -30,13 +34,17 @@ export default function AdminLayout() {
 
   const menuItems = [
     { label: "Dashboard", path: "/admin/dashboard" },
-    { label: "Utilisateurs", path: "/admin/users" },
     { label: "Salles", path: "/admin/salles" },
     { label: "Examens", path: "/admin/exams" },
     { label: "Matières", path: "/admin/matieres" },
     { label: "Calendrier", path: "/admin/calendrier" },
     { label: "Affectations", path: "/admin/affectation" },
     { label: "Supervision", path: "/admin/supervision" },
+  ];
+
+  const usersSubItems = [
+    { label: "Étudiants", path: "/admin/etudiants" },
+    { label: "Surveillants", path: "/admin/surveillants" },
   ];
 
   const handleNavigate = (path) => {
@@ -82,6 +90,49 @@ export default function AdminLayout() {
             </ListItemButton>
           </ListItem>
         ))}
+
+        {/* Users Dropdown */}
+        <ListItem disablePadding>
+          <ListItemButton
+            onClick={() => setUsersMenuOpen(!usersMenuOpen)}
+            sx={{
+              py: 1.5,
+              '&:hover': {
+                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+              },
+            }}
+          >
+            <ListItemText 
+              primary="Utilisateurs"
+              sx={{ '& .MuiTypography-root': { fontSize: '0.95rem' } }}
+            />
+            {usersMenuOpen ? <ExpandLess /> : <ExpandMore />}
+          </ListItemButton>
+        </ListItem>
+
+        <Collapse in={usersMenuOpen} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            {usersSubItems.map((item) => (
+              <ListItem key={item.path} disablePadding>
+                <ListItemButton
+                  onClick={() => handleNavigate(item.path)}
+                  sx={{
+                    pl: 4,
+                    py: 1.5,
+                    '&:hover': {
+                      backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    },
+                  }}
+                >
+                  <ListItemText 
+                    primary={item.label}
+                    sx={{ '& .MuiTypography-root': { fontSize: '0.9rem' } }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </Collapse>
       </List>
       <Divider />
       <Box sx={{ p: 2 }}>

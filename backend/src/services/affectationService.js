@@ -252,7 +252,7 @@ export class AffectationService {
           model: Exam,
           attributes: ["id", "duree", "date"],
           include: [
-            { model: Matiere, as: "Matiere", attributes: ["id", "label", "niveau"] }
+            { model: Matiere, attributes: ["id", "label", "niveau"] }
           ]
         },
         {
@@ -263,12 +263,19 @@ export class AffectationService {
     });
   }
 
-  // Affectations d’un examen
+  // Affectations d'un examen
   static async getAffectationsByExam(examId) {
     return Affectation.findAll({
       where: { examId },
       include: [
         { model: User, as: "etudiant", attributes: ["id", "fullname", "niveau"] },
+        {
+          model: Exam,
+          attributes: ["id", "duree", "date"],
+          include: [
+            { model: Matiere, attributes: ["id", "label", "niveau"] }
+          ]
+        },
         { model: Place, include: [{ model: Salle, attributes: ["label"] }] },
       ],
     });

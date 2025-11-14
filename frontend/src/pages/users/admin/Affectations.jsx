@@ -4,7 +4,7 @@ import {
   getAffectationsByExam,
   getRoomOccupancy,
   autoAffectStudents,
-} from "../../../services/affectationService";
+} from "../../../services/affectations";
 import { getAllExams } from "../../../services/exams";
 import { Zap, Search, Eye, Calendar, AlertCircle } from "lucide-react";
 
