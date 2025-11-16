@@ -177,18 +177,18 @@ export default function Users() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Gestion des utilisateurs</h1>
-          <p className="text-sm text-slate-500">Créer, modifier, importer et gérer les utilisateurs.</p>
+          <h1 className="text-3xl font-semibold text-slate-800">Gestion des utilisateurs</h1>
+          <p className="text-sm text-slate-500 mt-1">Créer, modifier, importer et gérer les utilisateurs.</p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white border rounded-md shadow-sm px-3 py-2">
+          <div className="flex items-center gap-2 bg-white border border-gray-500/80 rounded-md shadow-sm px-3 py-2">
             <Search className="text-slate-400" />
             <input
               placeholder="Rechercher un nom, email ou rôle..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="outline-none px-2 py-1 text-sm w-64"
+              className="outline-none px-2 text-sm w-64"
             />
           </div>
 
@@ -248,9 +248,9 @@ export default function Users() {
       )}
 
       {/* Table */}
-      <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-white border border-gray-500/80 rounded-lg shadow-sm overflow-hidden">
         <table className="min-w-full divide-y">
-          <thead className="bg-slate-50">
+          <thead className="bg-slate-50 border-b border-gray-500/80">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">#</th>
               <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">Nom</th>
@@ -259,7 +259,7 @@ export default function Users() {
               <th className="px-4 py-3 text-right text-sm font-medium text-slate-500">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-gray-200/80">
             {loading ? (
               <tr>
                 <td colSpan={5} className="p-8 text-center text-slate-400">

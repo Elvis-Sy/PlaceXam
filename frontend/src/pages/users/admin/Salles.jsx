@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Plus, Edit, Trash2, Download } from "lucide-react";
+import { Plus, Edit, Trash2, Download, Search } from "lucide-react";
 import {
   getAllSalles,
   createSalle,
@@ -8,24 +8,58 @@ import {
   getSalleOccupancy,
 } from "../../../services/salles";
 
+function IconButton({ children, className = "", ...props }) {
+  return (
+    <button
+      {...props}
+      className={
+        "inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium shadow-sm hover:shadow-md transition-shadow " +
+        className
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
 /* Small modal helper */
 function Modal({ open, onClose, title, children }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-2xl mx-4">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3 border-b">
-            <h3 className="text-lg font-semibold">{title}</h3>
-            <button onClick={onClose} className="px-2 py-1 rounded hover:bg-slate-100">Fermer</button>
+      {/* Background */}
+      <div
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-fadeIn"
+        onClick={onClose}
+      />
+
+      {/* Container */}
+      <div className="relative z-10 w-full max-w-xl mx-4 animate-scaleIn">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-500/80 bg-slate-50">
+            <h3 className="text-lg font-bold text-slate-800">{title}</h3>
+            <button
+              onClick={onClose}
+              className="text-slate-600 hover:bg-slate-200 p-1 rounded transition"
+            >
+              ✕
+            </button>
           </div>
-          <div className="p-5">{children}</div>
+
+          <div className="p-6">{children}</div>
         </div>
       </div>
+      <style>{`
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity:1; transform:scale(1); }}
+        .animate-scaleIn { animation: scaleIn .18s ease-out; }
+        @keyframes fadeIn { from { opacity:0;} to { opacity:1;} }
+        .animate-fadeIn { animation: fadeIn .25s ease-out; }
+      `}</style>
+
     </div>
   );
 }
+
 
 export default function Salles() {
   const [salles, setSalles] = useState([]);
@@ -35,6 +69,8 @@ export default function Salles() {
   const [query, setQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   const [planOpen, setPlanOpen] = useState(false);
@@ -91,7 +127,6 @@ export default function Salles() {
     }
   }
   async function doDelete(id) {
-    if (!confirm("Supprimer cette salle et ses places ?")) return;
     try {
       await deleteSalle(id);
       await load();
@@ -110,68 +145,90 @@ export default function Salles() {
   async function loadOccupancy(salle, date) {
     try {
       const res = await getSalleOccupancy(salle.id, date);
+      console.log(res);
       setOccupancy(res);
     } catch (e) {
       alert(e?.response?.data?.error ?? e.message ?? "Erreur");
     }
   }
 
+  const exportCSV = () => {
+    const rows = [["label", "capacite"]];
+    for (const s of filtered) rows.push([s.label, s.capacite]);
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "salles.csv"; a.click(); URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Salles</h1>
-          <p className="text-sm text-slate-500">CRUD des salles (liste, créer, modifier, supprimer).</p>
+          <h1 className="text-3xl font-semibold text-slate-800">Salles</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Gérer les salles : création, modification, suppression, plan.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center bg-white border rounded px-3 py-2">
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher..." className="outline-none text-sm" />
+          <div className="flex items-center gap-2 bg-white border border-gray-500/80 rounded-md shadow-sm px-3 py-2">
+            <Search className="text-slate-400" />
+            <input
+              placeholder="Rechercher..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="outline-none px-2 text-sm w-64"
+            />
           </div>
 
-          <button onClick={openCreate} className="px-3 py-2 rounded bg-indigo-600 text-white flex items-center gap-2">
-            <Plus size={16} /> Nouvelle
-          </button>
+          <IconButton
+            onClick={exportCSV}
+            className="bg-slate-800 text-white hover:bg-slate-900"
+            title="Exporter CSV"
+          >
+            <Download size={16} /> Exporter
+          </IconButton>
 
-          <button onClick={() => {
-            // export filtered CSV
-            const rows = [["label", "capacite"]];
-            for (const s of filtered) rows.push([s.label, s.capacite]);
-            const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
-            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a"); a.href = url; a.download = "salles.csv"; a.click(); URL.revokeObjectURL(url);
-          }} className="px-3 py-2 rounded bg-slate-100">
-            <Download size={16} /> Export
-          </button>
+          <IconButton onClick={openCreate} className="bg-indigo-600 text-white hover:bg-indigo-700">
+            <Plus size={16} /> Créer
+          </IconButton>
         </div>
       </div>
 
-      <div className="bg-white border rounded shadow-sm">
-        <table className="min-w-full">
-          <thead className="bg-slate-50">
+
+      <div className="bg-white border border-gray-500/80 rounded-lg shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead className="bg-slate-100 border-b border-gray-500/80">
             <tr>
-              <th className="px-4 py-3 text-left">#</th>
-              <th className="px-4 py-3 text-left">Label</th>
-              <th className="px-4 py-3 text-left">Capacité</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">#</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">Label</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">Capacité</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Actions</th>
             </tr>
           </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={4} className="p-8 text-center">Chargement...</td></tr>
-            ) : filtered.length === 0 ? (
-              <tr><td colSpan={4} className="p-8 text-center">Aucune salle</td></tr>
-            ) : filtered.map((s, i) => (
-              <tr key={s.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 text-sm">{i+1}</td>
-                <td className="px-4 py-3">{s.label}</td>
+
+          <tbody className="divide-y divide-gray-200/80">
+            {filtered.map((s, i) => (
+              <tr key={s.id} className="hover:bg-slate-50 transition">
+                <td className="px-4 py-3">{i + 1}</td>
+                <td className="px-4 py-3 font-medium">{s.label}</td>
                 <td className="px-4 py-3">{s.capacite}</td>
                 <td className="px-4 py-3 text-right">
                   <div className="inline-flex gap-2">
-                    <button onClick={() => openEdit(s)} className="p-2 rounded hover:bg-slate-100"><Edit size={16} /></button>
-                    <button onClick={() => doDelete(s.id)} className="p-2 rounded hover:bg-red-50 text-red-600"><Trash2 size={16} /></button>
-                    <button onClick={() => openPlan(s)} className="px-2 py-1 rounded bg-slate-100 text-sm">Voir plan</button>
+                    <button className="p-2 rounded-lg hover:bg-slate-200 transition">
+                      <Edit size={16} onClick={() => openEdit(s)} />
+                    </button>
+                    <button className="p-2 rounded-lg hover:bg-red-200 text-red-600 transition">
+                      <Trash2 size={16} onClick={() => {
+                        setDeleteTarget(s);
+                        setDeleteOpen(true);
+                      }} />
+                    </button>
+                    <button className="px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-sm transition"
+                      onClick={() => openPlan(s)}>
+                      Voir plan
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -181,23 +238,110 @@ export default function Salles() {
       </div>
 
       {/* create / edit modal */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing?.id ? "Modifier salle" : "Créer salle"}>
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editing?.id ? "Modifier salle" : "Créer salle"}
+      >
         {editing && (
-          <form onSubmit={submit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium">Label</label>
-              <input required value={editing.label} onChange={(e) => setEditing({...editing, label: e.target.value})} className="mt-1 w-full border px-3 py-2 rounded" />
+          <form onSubmit={submit} className="space-y-6">
+            
+            {/* Champ label */}
+            <div className="space-y-1">
+              <label className="block text-sm font-semibold text-slate-700">
+                Label
+              </label>
+              <input
+                required
+                value={editing.label}
+                onChange={(e) => setEditing({ ...editing, label: e.target.value })}
+                placeholder="Nom de la salle"
+                className="w-full border border-slate-300 px-4 py-2.5 rounded-xl
+                          focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40
+                          outline-none transition-all"
+              />
             </div>
-            <div>
-              <label className="block text-sm font-medium">Capacité</label>
-              <input required type="number" min="1" value={editing.capacite} onChange={(e) => setEditing({...editing, capacite: e.target.value})} className="mt-1 w-40 border px-3 py-2 rounded" />
+
+            {/* Champ capacité */}
+            <div className="space-y-1">
+              <label className="block text-sm font-semibold text-slate-700">
+                Capacité
+              </label>
+              <input
+                required
+                type="number"
+                min="1"
+                value={editing.capacite}
+                onChange={(e) => setEditing({ ...editing, capacite: e.target.value })}
+                className="w-40 border border-slate-300 px-4 py-2.5 rounded-xl
+                          focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40
+                          outline-none transition-all"
+              />
             </div>
-            <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 rounded bg-slate-100">Annuler</button>
-              <button disabled={submitting} type="submit" className="px-4 py-2 rounded bg-indigo-600 text-white">{submitting ? "..." : "Enregistrer"}</button>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200
+                          text-slate-700 shadow transition"
+              >
+                Annuler
+              </button>
+
+              <button
+                disabled={submitting}
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700
+                          text-white shadow transition disabled:opacity-60"
+              >
+                {submitting ? "Enregistrement..." : "Enregistrer"}
+              </button>
             </div>
           </form>
         )}
+      </Modal>
+
+      {/* delete modal */}
+      <Modal
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title="Confirmer la suppression"
+      >
+        <div className="space-y-4">
+
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-sm text-red-700">
+              Voulez-vous vraiment supprimer la salle :
+              <span className="font-semibold"> « {deleteTarget?.label} »</span> ?
+            </p>
+
+            <p className="text-xs text-red-600 mt-1">
+              ⚠️ Cette action est <span className="font-semibold">définitive</span> et supprimera toutes les places associées.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setDeleteOpen(false)}
+              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition shadow-sm"
+            >
+              Annuler
+            </button>
+
+            <button
+              onClick={async () => {
+                await doDelete(deleteTarget.id);
+                setDeleteOpen(false);
+              }}
+              className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-sm transition"
+            >
+              Supprimer
+            </button>
+          </div>
+        </div>
       </Modal>
 
       {/* Plan modal */}
@@ -221,9 +365,9 @@ export default function Salles() {
                       onMouseEnter={() => hoveredPlaceId !== p.id && setHoveredPlaceId(null)}
                       onMouseLeave={() => hoveredPlaceId !== p.id && setHoveredPlaceId(null)}
                       className={`p-3 rounded-lg border shadow-sm text-center cursor-pointer transition-all duration-200 ${
-                        hoveredPlaceId === p.id
-                          ? "absolute z-20 scale-125 shadow-2xl"
-                          : `relative scale-100 hover:scale-110`
+                        hoveredPlaceId === p.id && p.occupied
+                          ? "absolute z-20 h-full w-full shadow-2xl"
+                          : `relative scale-100 hover:scale-105`
                       } ${
                         p.occupied
                           ? "bg-red-100 text-red-800 hover:bg-red-150"
@@ -241,9 +385,9 @@ export default function Salles() {
                       )}
 
                       {/* Affichage au hover (juste le niveau) */}
-                      {hoveredPlaceId === null && p.occupied && p.occupant?.niveau && (
+                      {p.occupied && p.occupant?.niveau && (
                         <div className="text-xs mt-2">
-                          <div className="text-xs bg-slate-200 px-2 py-1 rounded inline-block">
+                          <div className="text-xs bg-red-900/40 px-2 py-1 rounded inline-block">
                             {p.occupant.niveau}
                           </div>
                         </div>
@@ -251,20 +395,33 @@ export default function Salles() {
 
                       {/* Affichage au click (tous les détails) */}
                       {hoveredPlaceId === p.id && p.occupied && p.occupant && (
-                        <div className="text-xs mt-2 space-y-1">
-                          <div className="font-semibold">{p.occupant.fullname}</div>
-                          <div>{p.occupant.email}</div>
-                          {p.occupant.niveau && (
-                            <div className="text-xs bg-slate-200 px-2 py-1 rounded inline-block">
-                              {p.occupant.niveau}
+                        <div className="flex text-gray-900 justify-between mt-4 gap-2 py-2 px-8">
+                          <div className="text-left">
+                            <div className="font-bold">Etudiant:</div>
+                            <div className="text-sm font-medium">
+                              <div>
+                                <span className="opacity-80">Nom:</span>{" "}
+                                {p.occupant.fullname}
+                              </div>
+                              <div>
+                                <span className="opacity-80">E-mail:</span>{" "}
+                                {p.occupant.email}
+                              </div>
                             </div>
-                          )}
+                          </div>
                           {p.exam && (
-                            <div className="text-xs mt-1">
-                              <div className="font-semibold">Examen</div>
-                              <div>ID: {p.exam.id}</div>
-                              <div>{new Date(p.exam.date).toLocaleDateString("fr-FR")}</div>
-                              <div>{p.exam.duree} min</div>
+                            <div className="text-left">
+                              <div className="font-bold">Examen:</div>
+                              <div className="text-sm font-medium">
+                                <div>
+                                  <span className="opacity-80">Label:</span>{" "}
+                                  {p.exam.Matiere.label}
+                                </div>
+                                <div>
+                                  <span className="opacity-80">Duree:</span>{" "}
+                                  {p.exam.duree} min
+                                </div>
+                              </div>
                             </div>
                           )}
                         </div>
