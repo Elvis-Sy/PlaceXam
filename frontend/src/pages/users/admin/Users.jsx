@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import {
-  getUsers,
+  getUsersByRole,
   createUser,
   updateUser,
   deleteUser,
@@ -34,27 +34,44 @@ function IconButton({ children, className = "", ...props }) {
   );
 }
 
-function Modal({ open, onClose, children, title }) {
+function Modal({ open, onClose, title, children }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-xl mx-4">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden animate-fade-in">
-          <div className="flex items-center justify-between px-5 py-3 border-b">
-            <h3 className="text-lg font-semibold">{title}</h3>
-            <button onClick={onClose} className="p-1 rounded-md hover:bg-slate-100">
-              <X size={18} />
+      {/* Background */}
+      <div
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-fadeIn"
+        onClick={onClose}
+      />
+
+      {/* Container */}
+      <div className="relative z-10 w-full max-w-xl mx-4 animate-scaleIn">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-500/80 bg-slate-50">
+            <h3 className="text-lg font-bold text-slate-800">{title}</h3>
+            <button
+              onClick={onClose}
+              className="text-slate-600 hover:bg-slate-200 p-1 rounded transition"
+            >
+              ✕
             </button>
           </div>
-          <div className="p-5">{children}</div>
+
+          <div className="p-6">{children}</div>
         </div>
       </div>
+      <style>{`
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity:1; transform:scale(1); }}
+        .animate-scaleIn { animation: scaleIn .18s ease-out; }
+        @keyframes fadeIn { from { opacity:0;} to { opacity:1;} }
+        .animate-fadeIn { animation: fadeIn .25s ease-out; }
+      `}</style>
+
     </div>
   );
 }
 
-export default function Users() {
+export default function Users({userRole}) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
@@ -63,6 +80,8 @@ export default function Users() {
   const [selectedFile, setSelectedFile] = useState(null);
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -70,13 +89,13 @@ export default function Users() {
 
   useEffect(() => {
     fetch();
-  }, []);
+  }, [userRole]);
 
   async function fetch() {
     setLoading(true);
     setErr(null);
     try {
-      const res = await getUsers();
+      const res = await getUsersByRole(userRole);
       const data = res?.data ?? res;
       const list = Array.isArray(data) ? data : data?.users ?? data?.data ?? [];
       setUsers(list);
@@ -100,7 +119,7 @@ export default function Users() {
 
   // Create / Edit handlers
   function openCreate() {
-    setEditingUser({ fullname: "", email: "", role: "etudiant", password: "" });
+    setEditingUser({ fullname: "", email: "", niveau: "", role: "etudiant", password: "" });
     setModalOpen(true);
   }
   function openEdit(u) {
@@ -115,6 +134,7 @@ export default function Users() {
       const payload = {
         fullname: editingUser.fullname,
         email: editingUser.email,
+        niveau: editingUser.niveau,
         role: editingUser.role,
         ...(editingUser.password ? { password: editingUser.password } : {}),
       };
@@ -138,8 +158,6 @@ export default function Users() {
 
   // Delete
   async function handleDelete(id) {
-    if (!confirm("Supprimer cet utilisateur ? Cette action est irréversible.")) return;
-    setDeletingId(id);
     try {
       await deleteUser(id);
       await fetch();
@@ -177,7 +195,7 @@ export default function Users() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-800">Gestion des utilisateurs</h1>
+          <h1 className="text-3xl font-semibold text-slate-800">Gestion des {userRole}s</h1>
           <p className="text-sm text-slate-500 mt-1">Créer, modifier, importer et gérer les utilisateurs.</p>
         </div>
 
@@ -254,6 +272,7 @@ export default function Users() {
             <tr>
               <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">#</th>
               <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">Nom</th>
+              {userRole == "etudiant" && <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">Niveau</th>}
               <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">Email</th>
               <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">Rôle</th>
               <th className="px-4 py-3 text-right text-sm font-medium text-slate-500">Actions</th>
@@ -282,8 +301,9 @@ export default function Users() {
                   <td className="px-4 py-3 text-sm text-slate-600">{i + 1}</td>
                   <td className="px-4 py-3">
                     <div className="font-medium">{u.fullname ?? u.full_name ?? "-"}</div>
-                    <div className="text-xs text-slate-400">{u.createdAt ? new Date(u.createdAt).toLocaleString() : ""}</div>
+                    <div className="text-xs text-slate-400">{u.createdAt ? new Date(u.createdAt).toLocaleString().split(" ")[0] : ""}</div>
                   </td>
+                  {userRole == "etudiant" && <td className="px-4 py-3 font-semibold text-sm text-slate-600">{u.niveau}</td>}
                   <td className="px-4 py-3 text-sm text-slate-600">{u.email}</td>
                   <td className="px-4 py-3 text-sm">
                     <span className={
@@ -303,7 +323,9 @@ export default function Users() {
                         <Edit size={16} />
                       </button>
                       <button
-                        onClick={() => handleDelete(u.id ?? u.userId ?? u._id)}
+                        onClick={() => {
+                          setDeleteTarget(u);
+                          setDeleteOpen(true);}}
                         className="p-2 rounded-md hover:bg-red-50 text-red-600 transition"
                         title="Supprimer"
                         disabled={deletingId === (u.id ?? u.userId ?? u._id)}
@@ -336,7 +358,9 @@ export default function Users() {
                 required
                 value={editingUser.fullname ?? ""}
                 onChange={(e) => setEditingUser((s) => ({ ...s, fullname: e.target.value }))}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
+                className="w-full border border-slate-300 px-4 py-2.5 rounded-xl
+                          focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40
+                          outline-none transition-all"
               />
             </div>
 
@@ -347,16 +371,37 @@ export default function Users() {
                 type="email"
                 value={editingUser.email ?? ""}
                 onChange={(e) => setEditingUser((s) => ({ ...s, email: e.target.value }))}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
+                className="w-full border border-slate-300 px-4 py-2.5 rounded-xl
+                          focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40
+                          outline-none transition-all"
               />
             </div>
+
+            {userRole == "etudiant" && (<div>
+              <label className="block text-sm font-medium text-slate-700">Niveau</label>
+              <select
+                value={editingUser.niveau ?? ""}
+                onChange={(e) => setEditingUser((s) => ({ ...s, niveau: e.target.value }))}
+                className="text-gray-600 w-full border border-slate-300 px-4 py-2.5 rounded-xl
+                          focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40
+                          outline-none transition-all"
+              >
+                <option value="L1">L1</option>
+                <option value="L2">L2</option>
+                <option value="L3">L3</option>
+                <option value="M1">M1</option>
+                <option value="M2">M2</option>
+              </select>
+            </div>)}
 
             <div>
               <label className="block text-sm font-medium text-slate-700">Rôle</label>
               <select
-                value={editingUser.role ?? "etudiant"}
+                value={editingUser.role ?? userRole}
                 onChange={(e) => setEditingUser((s) => ({ ...s, role: e.target.value }))}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
+                className="text-gray-600 w-full border border-slate-300 px-4 py-2.5 rounded-xl
+                          focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40
+                          outline-none transition-all"
               >
                 <option value="etudiant">Étudiant</option>
                 <option value="surveillant">Surveillant</option>
@@ -371,7 +416,9 @@ export default function Users() {
                 type="password"
                 value={editingUser.password ?? ""}
                 onChange={(e) => setEditingUser((s) => ({ ...s, password: e.target.value }))}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
+                className="w-full border border-slate-300 px-4 py-2.5 rounded-xl
+                          focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40
+                          outline-none transition-all"
               />
             </div>
 
@@ -383,6 +430,47 @@ export default function Users() {
             </div>
           </form>
         )}
+      </Modal>
+
+      {/* delete modal */}
+      <Modal
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title="Confirmer la suppression"
+      >
+        <div className="space-y-4">
+
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-sm text-red-700">
+              Voulez-vous vraiment supprimer {userRole == "etudiant" ? "l'etudiant(e)" : "le/la surveillant(e)"} :
+              <span className="font-semibold"> « {deleteTarget?.fullname} »</span> ?
+            </p>
+
+            <p className="text-xs text-red-600 mt-1">
+              ⚠️ Cette action est <span className="font-semibold">définitive</span>.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setDeleteOpen(false)}
+              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition shadow-sm"
+            >
+              Annuler
+            </button>
+
+            <button
+              onClick={async () => {
+                await handleDelete(deleteTarget.id);
+                setDeleteOpen(false);
+              }}
+              className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-sm transition"
+            >
+              Supprimer
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

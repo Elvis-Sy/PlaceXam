@@ -2,6 +2,43 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getAllCalendriers } from "../../../services/calendriers.js";
 
+
+function Modal({ open, onClose, title, children }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Background */}
+      <div
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-fadeIn"
+        onClick={onClose}
+      />
+
+      {/* Container */}
+      <div className="relative z-10 w-full max-w-xl mx-4 animate-scaleIn">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-500/80 bg-slate-50">
+            <h3 className="text-lg font-bold text-slate-800">{title}</h3>
+            <button
+              onClick={onClose}
+              className="text-slate-600 hover:bg-slate-200 p-1 rounded transition"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="p-6">{children}</div>
+        </div>
+      </div>
+      <style>{`
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity:1; transform:scale(1); }}
+        .animate-scaleIn { animation: scaleIn .18s ease-out; }
+        @keyframes fadeIn { from { opacity:0;} to { opacity:1;} }
+        .animate-fadeIn { animation: fadeIn .25s ease-out; }
+      `}</style>
+    </div>
+  );
+}
+
 const MONTH_NAMES = [
   "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
   "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"
@@ -50,6 +87,10 @@ export default function Calendriers() {
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState(null);
   const [hoverDay, setHoverDay] = useState(null);
+
+  // NOUVEAUX ÉTATS pour la modale de création
+  const [creationModalOpen, setCreationModalOpen] = useState(false);
+  const [dateToCreate, setDateToCreate] = useState(null);
 
   useEffect(() => {
     fetchCalendriers();
@@ -149,6 +190,14 @@ export default function Calendriers() {
     setCurrent((d) => addMonths(d, 1));
   }
 
+  // NOUVELLE FONCTION pour le double-clic
+  function handleDoubleClick(date) {
+    if (!date) return;
+    setDateToCreate(date);
+    setCreationModalOpen(true);
+    setSelectedDay(null);
+  }
+
   const HOURS = Array.from({ length: 12 }, (_, i) => 7 + i);
 
   const todayKey = formatDateKey(new Date());
@@ -158,8 +207,10 @@ export default function Calendriers() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Calendrier</h1>
-          <p className="text-sm text-slate-500">Vue mensuelle — cliquez sur un jour pour voir l'emploi du temps.</p>
+          <h1 className="text-3xl font-semibold text-slate-800">Calendrier</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Vue mensuelle — cliquez sur un jour pour voir l'emploi du temps.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -180,7 +231,7 @@ export default function Calendriers() {
         </div>
       </div>
 
-      <div className="bg-white border rounded-lg p-4 shadow-sm">
+      <div className="bg-white border border-gray-500/80 rounded-lg p-4 shadow-sm">
         <div className="grid grid-cols-7 gap-2 text-center text-xs uppercase text-slate-500 mb-3">
           <div>Dim</div><div>Lun</div><div>Mar</div><div>Mer</div><div>Jeu</div><div>Ven</div><div>Sam</div>
         </div>
@@ -197,8 +248,9 @@ export default function Calendriers() {
                   onMouseEnter={() => setHoverDay(date ? key : null)}
                   onMouseLeave={() => setHoverDay(null)}
                   onClick={() => date && setSelectedDay((s) => (s === key ? null : key))}
+                  onDoubleClick={() => handleDoubleClick(date)}
                   className={
-                    "min-h-[96px] rounded-lg p-2 relative transition-transform transform " +
+                    "min-h-24 rounded-lg p-2 relative transition-transform transform " +
                     (date ? "cursor-pointer hover:scale-[1.02] " : "opacity-30 ") +
                     (isToday ? "ring-2 ring-indigo-200 " : "")
                   }
@@ -242,7 +294,7 @@ export default function Calendriers() {
       </div>
 
       {selectedDay && (
-        <div className="bg-white border rounded-lg p-4 shadow-sm">
+        <div className="bg-white border border-gray-500/80 rounded-lg p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">Emploi du temps — {selectedDay}</h2>
             <button onClick={() => setSelectedDay(null)} className="px-3 py-1 rounded bg-slate-100">Fermer</button>
@@ -258,7 +310,7 @@ export default function Calendriers() {
             </div>
 
             <div className="col-span-10 relative">
-              <div className="relative border rounded-lg overflow-hidden" style={{ minHeight: "12 * 3rem" }}>
+              <div className="relative border border-gray-500/80 rounded-lg overflow-hidden" style={{ minHeight: "12 * 3rem" }}>
                 <div className="grid" style={{ gridTemplateRows: `repeat(${HOURS.length}, 3rem)` }}>
                   {HOURS.map((h) => {
                     if (h === 12) {
@@ -268,7 +320,7 @@ export default function Calendriers() {
                         </div>
                       );
                     }
-                    return <div key={h} className="border-b" />;
+                    return <div key={h} className="border-b border-gray-200/80" />;
                   })}
                 </div>
 
@@ -311,6 +363,39 @@ export default function Calendriers() {
       )}
 
       {loading && <div className="text-sm text-slate-500">Chargement des calendriers...</div>}
+
+      <Modal 
+        open={creationModalOpen} 
+        onClose={() => setCreationModalOpen(false)} 
+        title={`Planifier un examen le ${dateToCreate ? dateToCreate.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}`}
+      >
+        <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+                Examen du : 
+                <strong className="ml-1 text-indigo-600">{dateToCreate?.toLocaleDateString('fr-FR')}</strong>.
+            </p>
+            {/* ⚠️ ICI IL FAUDRAIT AJOUTER VOTRE FORMULAIRE RÉEL */}
+            <form className="space-y-4">
+                <input 
+                    type="text" 
+                    placeholder="Nom de l'examen/événement" 
+                    className="w-full border border-slate-300 px-4 py-2 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/40"
+                />
+                
+                <input 
+                    type="datetime-local" 
+                    value={dateToCreate?.toISOString().slice(0, 16) ?? ''}
+                    onChange={() => {}} // Lire seulement, ou ajouter la logique pour l'édition de l'heure
+                    className="w-full border border-slate-300 px-4 py-2 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/40"
+                />
+
+                <div className="flex justify-end gap-2 pt-2">
+                    <button type="button" onClick={() => setCreationModalOpen(false)} className="px-4 py-2 rounded bg-slate-100">Annuler</button>
+                    <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded">Créer l'événement</button>
+                </div>
+            </form>
+        </div>
+      </Modal>
     </div>
   );
 }

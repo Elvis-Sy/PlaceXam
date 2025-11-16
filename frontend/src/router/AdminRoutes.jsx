@@ -31,8 +31,8 @@ export default (
       <Route path="calendrier" element={<Calendrier />} />
       <Route path="affectation" element={<Affectation />} />
       <Route path="supervision" element={<Supervision />} />
-      <Route path="etudiants" element={<Users userRole="etudiant" />} />
-      <Route path="surveillants" element={<Users userRole="surveillant" />} />
+      <Route path="etudiants" element={<Users key="etudiants" userRole="etudiant" />} />
+      <Route path="surveillants" element={<Users key="surveillants" userRole="surveillant" />} />
     </Route>
 
     <Route

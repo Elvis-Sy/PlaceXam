@@ -34,7 +34,7 @@ function Modal({ open, onClose, title, children }) {
       />
 
       {/* Container */}
-      <div className="relative z-10 w-full max-w-xl mx-4 animate-scaleIn">
+      <div className="relative z-10 w-full max-w-2xl mx-4 animate-scaleIn">
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-500/80 bg-slate-50">
             <h3 className="text-lg font-bold text-slate-800">{title}</h3>
@@ -353,7 +353,7 @@ export default function Salles() {
             <button onClick={() => loadOccupancy(planSalle, planDate)} className="px-3 py-2 rounded bg-indigo-600 text-white">Actualiser</button>
           </div>
 
-          <div>
+          <div className="min-h-60">
             {!occupancy && <div className="text-sm text-slate-500">Aucune donnée — actualiser pour charger l'occupation.</div>}
             {occupancy && (
               <div className="relative" style={{ gridTemplateColumns: `repeat(${Math.min(12, Math.ceil(Math.sqrt(planSalle.capacite || 1)))}, 1fr)` }}>

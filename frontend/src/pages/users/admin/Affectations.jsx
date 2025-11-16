@@ -19,22 +19,39 @@ function IconButton({ children, className = "", ...props }) {
   );
 }
 
-function Modal({ open, onClose, children, title }) {
+function Modal({ open, onClose, title, children }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-2xl mx-4 max-h-96 overflow-y-auto">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3 border-b sticky top-0 bg-white">
-            <h3 className="text-lg font-semibold">{title}</h3>
-            <button onClick={onClose} className="p-1 rounded-md hover:bg-slate-100">
+      {/* Background */}
+      <div
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-fadeIn"
+        onClick={onClose}
+      />
+
+      {/* Container */}
+      <div className="relative z-10 w-full max-w-2xl mx-4 animate-scaleIn">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-500/80 bg-slate-50">
+            <h3 className="text-lg font-bold text-slate-800">{title}</h3>
+            <button
+              onClick={onClose}
+              className="text-slate-600 hover:bg-slate-200 p-1 rounded transition"
+            >
               ✕
             </button>
           </div>
-          <div className="p-5">{children}</div>
+
+          <div className="p-6">{children}</div>
         </div>
       </div>
+      <style>{`
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity:1; transform:scale(1); }}
+        .animate-scaleIn { animation: scaleIn .18s ease-out; }
+        @keyframes fadeIn { from { opacity:0;} to { opacity:1;} }
+        .animate-fadeIn { animation: fadeIn .25s ease-out; }
+      `}</style>
+
     </div>
   );
 }
@@ -66,6 +83,7 @@ export default function Affectations() {
 
       const affData = Array.isArray(affRes) ? affRes : affRes?.data ?? affRes ?? [];
       const exData = Array.isArray(exRes) ? exRes : exRes?.data ?? exRes ?? [];
+      console.log(exData)
       
       setAffectations(affData);
       setExams(exData);
@@ -141,8 +159,8 @@ export default function Affectations() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Gestion des affectations</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-3xl font-semibold text-slate-800">Affectations</h1>
+          <p className="text-sm text-slate-500 mt-1">
             Affectation automatique des étudiants et visualisation des places.
           </p>
         </div>
@@ -169,21 +187,21 @@ export default function Affectations() {
       )}
 
       {/* Filters */}
-      <div className="flex items-center gap-3 bg-white p-4 rounded-lg border shadow-sm">
-        <div className="flex items-center gap-2 flex-1 bg-slate-50 border rounded-md px-3 py-2">
-          <Search size={16} className="text-slate-400" />
+      <div className="flex items-center justify-end gap-3 p-4 rounded-lg">
+        <div className="flex items-center gap-2 bg-white border border-gray-500/80 rounded-md shadow-sm px-3 py-2">
+          <Search className="text-slate-400" />
           <input
             placeholder="Chercher un étudiant, une salle, une place..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="outline-none bg-transparent px-2 py-1 text-sm flex-1"
+            className="outline-none px-2 text-sm min-w-80"
           />
         </div>
 
         <select
           value={selectedExamId}
           onChange={(e) => setSelectedExamId(e.target.value)}
-          className="px-3 py-2 rounded-md border text-sm font-medium"
+          className="px-3 py-2 rounded-md border border-gray-500/80 text-gray-700 text-sm font-medium"
         >
           <option value="">Sélectionner un examen</option>
           {exams.map((exam) => (
@@ -205,9 +223,9 @@ export default function Affectations() {
       )}
 
       {/* Table */}
-      <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-white border border-gray-500/80 rounded-lg shadow-sm overflow-hidden">
         <table className="min-w-full divide-y">
-          <thead className="bg-slate-50">
+          <thead className="bg-slate-50 border-b border-gray-500/80">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">#</th>
               <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">Étudiant</th>
@@ -218,7 +236,7 @@ export default function Affectations() {
               <th className="px-4 py-3 text-right text-sm font-medium text-slate-500">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-gray-200/80">
             {loading ? (
               <tr>
                 <td colSpan={7} className="p-8 text-center text-slate-400">
@@ -258,7 +276,7 @@ export default function Affectations() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-600">
-                    {a.Exam?.id} ({new Date(a.Exam?.date).toLocaleDateString("fr-FR")})
+                    {a.Exam?.Matiere.label} ({new Date(a.Exam?.date).toLocaleDateString("fr-FR")})
                   </td>
                   <td className="px-4 py-3 text-right text-sm">
                     <IconButton
