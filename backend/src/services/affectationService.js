@@ -356,6 +356,7 @@ export class AffectationService {
           model: Exam,
           where: { date: { [Op.between]: [start, end] } },
           attributes: ["id", "date", "duree"],
+          include: [{ model: Matiere, attributes: ["label"] }],
         },
         {
           model: User,

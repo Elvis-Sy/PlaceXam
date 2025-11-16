@@ -18,6 +18,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import Collapse from '@mui/material/Collapse';
+import Img from '../../../assets/images/transparent-logo.png'
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
@@ -165,7 +166,7 @@ export default function AdminLayout() {
             <MenuIcon />
           </IconButton>
           <IconButton edge="start" color="inherit" aria-label="logo" sx={{ mr: 2 }}>
-            <img src="../../../assets/images/transparent-logo.png" alt="PlaceXam" />
+            <img src={Img} alt="PlaceXam" width={200}/>
           </IconButton>
           <Typography variant="body2" sx={{ opacity: 0.9 }}>
             {user?.fullname || user?.email}
