@@ -48,11 +48,18 @@ Calendrier.belongsTo(Salle, { foreignKey: "salleId" });
 Matiere.hasMany(Exam, { foreignKey: "matiereId", onDelete: "CASCADE" });
 Exam.belongsTo(Matiere, { foreignKey: "matiereId" });
 
+//// Salle <-> Supervision
+  Salle.hasMany(Supervision, { foreignKey: "salleId", as: "supervisions", onDelete: "CASCADE"  });
+  Supervision.belongsTo(Salle, { foreignKey: "salleId", as: "salle" });
+
+
 // ========================================== //
 
-await sequelize.sync()
+await sequelize.sync(
+  // {alter: true}
+)
   .then(() => console.log("✅ Synchronisation à la base MySQL réussie !"))
-  .catch(err => console.error("❌ Erreur de synchronosation :", err));
+  .catch(err => console.error("❌ Erreur de synchronisation :", err));
 
 export {
   User,

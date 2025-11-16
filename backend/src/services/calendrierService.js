@@ -1,6 +1,7 @@
 import Calendrier from "../models/calendrierModel.js";
 import Salle from "../models/salleModel.js";
 import Exam from "../models/examModel.js";
+import Matiere from "../models/matiereModel.js";
 import { Op } from "sequelize";
 
 export class CalendrierService {
@@ -45,25 +46,13 @@ export class CalendrierService {
         return calendrier;
     }
 
-    // Récupérer tous les calendriers
-    static async getAllCalendriers() {
-        const calendriers = await Calendrier.findAll({
-        include: [
-            { model: Exam },
-            // { model: Salle },
-        ],
-        order: [["start_time", "ASC"]],
-        });
-        return calendriers;
-    }
-
     // Récupérer un calendrier par ID
     static async getCalendrierById(id) {
         const calendrier = await Calendrier.findByPk(id, {
-        include: [
-            { model: Exam },
-            // { model: Salle },
-        ],
+            include: [
+                { model: Exam, include: [{ model: Matiere }] },
+                // { model: Salle },
+            ],
         });
         if (!calendrier) throw new Error("Calendrier introuvable");
         return calendrier;
@@ -89,7 +78,7 @@ export class CalendrierService {
 
         // const salleIdToCheck = data.salleId || calendrier.salleId;
         const conflict = await Calendrier.findOne({
-        where: {
+            where: {
                 // salleId: salleIdToCheck,
                 id: { [Op.ne]: id },
                 start_time: { [Op.lt]: end_time },
@@ -98,9 +87,8 @@ export class CalendrierService {
         });
 
         if (conflict) {
-        throw new Error("Cette salle est déjà réservée pendant ce créneau.");
+            throw new Error("Cette salle est déjà réservée pendant ce créneau.");
         }
-
 
         // Mettre à jour le calendrier, end_time compris
         await calendrier.update({
@@ -119,5 +107,58 @@ export class CalendrierService {
 
         await calendrier.destroy();
         return { message: "Calendrier supprimé avec succès" };
+    }
+
+    // Récupérer tous les calendriers (persistés + synthétisés depuis Exam quand absent)
+    static async getAllCalendriers(filters = {}) {
+        // 1) Persisted calendars with their exam + matiere
+        const persistedInstances = await Calendrier.findAll({
+            include: [{ model: Exam, include: [{ model: Matiere }] }],
+            order: [["start_time", "ASC"]],
+        });
+        const persisted = persistedInstances.map((p) => p.toJSON());
+
+        // 2) Fetch exams that may not have calendrier rows
+        // (optionally you can limit by date range via `filters`)
+        const exams = await Exam.findAll({
+            include: [{ model: Matiere }],
+            where: filters.where ?? {},
+        });
+
+        // 3) Build a set of examIds that already have a calendrier
+        const withCal = new Set(persisted.map((c) => c.examId ?? c.Exam?.id));
+
+        // 4) Synthesize virtual calendar entries for exams without persisted calendrier
+        const virtual = exams
+            .filter((ex) => !withCal.has(ex.id) && ex.date)
+            .map((ex) => {
+                // Combine date and optional time if you have separate time storage
+                let start = new Date(ex.date);
+                // If `ex.time` exists as "HH:MM", combine it
+                if (ex.time && typeof ex.time === "string") {
+                    const [hhRaw, mmRaw] = ex.time.split(":");
+                    const hh = Number(hhRaw);
+                    const mm = Number(mmRaw ?? 0);
+                    if (!Number.isNaN(hh)) {
+                        start.setHours(hh, Number.isNaN(mm) ? 0 : mm, 0, 0);
+                    }
+                }
+                const dureeMs = (Number(ex.duree) || 60) * 60 * 1000;
+                const end = new Date(start.getTime() + dureeMs);
+
+                return {
+                    id: `virtual-exam-${ex.id}`,
+                    start_time: start.toISOString(),
+                    end_time: end.toISOString(),
+                    examId: ex.id,
+                    Exam: ex, // keep exam so frontend can display matiere/label
+                    virtual: true,
+                };
+            });
+
+        // 5) Return combined sorted array
+        const combined = [...persisted, ...virtual];
+        combined.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+        return combined;
     }
 }

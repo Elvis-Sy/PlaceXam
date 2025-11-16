@@ -11,9 +11,11 @@ import {
 const calendrierRouter = express.Router();
 calendrierRouter.use(authenticate);
 
+// Accès pour touts les utilisateurs authentifiés
+calendrierRouter.get("/", getAllCalendriers);
+
 // Les accès administrateur
 calendrierRouter.post("/", authorizeRoles("admin"), createCalendrier);
-calendrierRouter.get("/", authorizeRoles("admin"), getAllCalendriers);
 calendrierRouter.get("/:id", authorizeRoles("admin"), getCalendrierById);
 calendrierRouter.patch("/:id", authorizeRoles("admin"), updateCalendrier);
 calendrierRouter.delete("/:id", authorizeRoles("admin"), deleteCalendrier);

@@ -1,191 +1,45 @@
-import React, { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useAuth } from "../../../hooks/useAuth";
-import AppBar from '@mui/material/AppBar';
-import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import IconButton from '@mui/material/IconButton';
-import MenuIcon from '@mui/icons-material/Menu';
-import Drawer from '@mui/material/Drawer';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemText from '@mui/material/ListItemText';
-import Divider from '@mui/material/Divider';
+import React from "react";
+import { Outlet } from "react-router-dom";
+import MyAppBar from '../../../components/UI/AppBar';
+import AccountMenu from '../../../components/UI/AccountMenu';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import BookIcon from '@mui/icons-material/Book';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
+import PeopleIcon from '@mui/icons-material/People';
+import PersonIcon from '@mui/icons-material/Person';
+import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
-import ExpandLess from '@mui/icons-material/ExpandLess';
-import ExpandMore from '@mui/icons-material/ExpandMore';
-import Collapse from '@mui/material/Collapse';
 
 export default function AdminLayout() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [usersMenuOpen, setUsersMenuOpen] = useState(false);
-
-  const toggleDrawer = (open) => (event) => {
-    if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
-      return;
-    }
-    setDrawerOpen(open);
-  };
-
   const menuItems = [
-    { label: "Dashboard", path: "/admin/dashboard" },
-    { label: "Salles", path: "/admin/salles" },
-    { label: "Examens", path: "/admin/exams" },
-    { label: "Matières", path: "/admin/matieres" },
-    { label: "Calendrier", path: "/admin/calendrier" },
-    { label: "Affectations", path: "/admin/affectation" },
-    { label: "Supervision", path: "/admin/supervision" },
+    { label: "Dashboard", path: "/admin/dashboard", icon: <DashboardIcon /> },
+    { label: "Salles", path: "/admin/salles", icon: <MeetingRoomIcon /> },
+    { label: "Examens", path: "/admin/exams", icon: <AssignmentIcon /> },
+    { label: "Matières", path: "/admin/matieres", icon: <BookIcon /> },
+    { label: "Calendrier", path: "/admin/calendrier", icon: <CalendarMonthIcon /> },
+    { label: "Affectations", path: "/admin/affectation", icon: <AssignmentIcon /> },
+    { label: "Supervision", path: "/admin/supervision", icon: <SupervisorAccountIcon /> },
   ];
 
   const usersSubItems = [
-    { label: "Étudiants", path: "/admin/etudiants" },
-    { label: "Surveillants", path: "/admin/surveillants" },
+    { label: "Étudiants", path: "/admin/etudiants", icon: <PeopleIcon /> },
+    { label: "Surveillants", path: "/admin/surveillants", icon: <PersonIcon /> },
   ];
 
-  const handleNavigate = (path) => {
-    navigate(path);
-    setDrawerOpen(false);
-  };
-
-  const handleLogout = () => {
-    setDrawerOpen(false);
-    logout();
-  };
-
-  const DrawerContent = (
-    <Box
-      sx={{ width: 280 }}
-      role="presentation"
-    >
-      <Box sx={{ p: 2 }}>
-        <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
-          PlaceXam — Admin
-        </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          {user?.fullname || user?.email}
-        </Typography>
-      </Box>
-      <Divider />
-      <List>
-        {menuItems.map((item) => (
-          <ListItem key={item.path} disablePadding>
-            <ListItemButton
-              onClick={() => handleNavigate(item.path)}
-              sx={{
-                py: 1.5,
-                '&:hover': {
-                  backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                },
-              }}
-            >
-              <ListItemText 
-                primary={item.label}
-                sx={{ '& .MuiTypography-root': { fontSize: '0.95rem' } }}
-              />
-            </ListItemButton>
-          </ListItem>
-        ))}
-
-        {/* Users Dropdown */}
-        <ListItem disablePadding>
-          <ListItemButton
-            onClick={() => setUsersMenuOpen(!usersMenuOpen)}
-            sx={{
-              py: 1.5,
-              '&:hover': {
-                backgroundColor: 'rgba(79, 70, 229, 0.1)',
-              },
-            }}
-          >
-            <ListItemText 
-              primary="Utilisateurs"
-              sx={{ '& .MuiTypography-root': { fontSize: '0.95rem' } }}
-            />
-            {usersMenuOpen ? <ExpandLess /> : <ExpandMore />}
-          </ListItemButton>
-        </ListItem>
-
-        <Collapse in={usersMenuOpen} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
-            {usersSubItems.map((item) => (
-              <ListItem key={item.path} disablePadding>
-                <ListItemButton
-                  onClick={() => handleNavigate(item.path)}
-                  sx={{
-                    pl: 4,
-                    py: 1.5,
-                    '&:hover': {
-                      backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                    },
-                  }}
-                >
-                  <ListItemText 
-                    primary={item.label}
-                    sx={{ '& .MuiTypography-root': { fontSize: '0.9rem' } }}
-                  />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </Collapse>
-      </List>
-      <Divider />
-      <Box sx={{ p: 2 }}>
-        <Button
-          variant="outlined"
-          color="error"
-          fullWidth
-          startIcon={<LogoutIcon />}
-          onClick={handleLogout}
-        >
-          Déconnexion
-        </Button>
-      </Box>
-    </Box>
-  );
+  const accountMenuItems = [
+    { label: "Settings", path: "/admin/settings", icon: <SettingsIcon /> },
+    { label: "Logout", path: "/logout", icon: <LogoutIcon /> },
+  ];
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: '#f1f5f9' }}>
-      {/* AppBar */}
-      <AppBar position="static" sx={{ boxShadow: 2 }}>
-        <Toolbar>
-          <IconButton
-            size="large"
-            edge="start"
-            color="inherit"
-            aria-label="menu"
-            sx={{ mr: 2 }}
-            onClick={toggleDrawer(true)}
-          >
-            <MenuIcon />
-          </IconButton>
-          <IconButton edge="start" color="inherit" aria-label="logo" sx={{ mr: 2 }}>
-            <img src="../../../assets/images/transparent-logo.png" alt="PlaceXam" />
-          </IconButton>
-          <Typography variant="body2" sx={{ opacity: 0.9 }}>
-            {user?.fullname || user?.email}
-          </Typography>
-        </Toolbar>
-      </AppBar>
-
-      {/* Drawer */}
-      <Drawer
-        anchor="left"
-        open={drawerOpen}
-        onClose={toggleDrawer(false)}
-      >
-        {DrawerContent}
-      </Drawer>
-
-      {/* Main Content */}
-      <Box sx={{ flex: 1, p: 3 }}>
+    <div>
+      <MyAppBar menuItems={menuItems} usersSubItems={usersSubItems} accountMenuItems={accountMenuItems}/>
+      <div style={{ padding: '16px' }}>
         <Outlet />
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

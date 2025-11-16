@@ -15,6 +15,10 @@ const Supervision = sequelize.define("Supervision", {
         type: DataTypes.UUID,
         allowNull: false,
     },
+    salleId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    },
 });
 
 export default Supervision;

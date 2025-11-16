@@ -1,14 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getAllCalendriers } from "../../../services/calendriers";
-
-/**
- * Calendriers.jsx
- * - Monthly calendar with prev/next
- * - Hover day -> enlarge and show exams summary at bottom (bold)
- * - Click day -> inline schedule (07:00 - 18:00), lunch 12:00-13:00 empty
- * - Exams color: red if finished, green if upcoming
- */
+import { getAllCalendriers } from "../../../services/calendriers.js";
 
 const MONTH_NAMES = [
   "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
@@ -30,20 +22,14 @@ function formatDateKey(d) {
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
-function toLocalISODate(date) {
-  return formatDateKey(date);
-}
 
-// returns array of week arrays; each week is array of Date objects or null for padding
 function buildMonthMatrix(year, month) {
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
   const matrix = [];
   let week = [];
-  // day of week: 0 Sun ... 6 Sat. We want Monday-first? We'll use Sunday-first for simplicity.
   let day = new Date(first);
-  // pad leading days
-  const startDow = day.getDay(); // 0..6
+  const startDow = day.getDay();
   for (let i = 0; i < startDow; i++) week.push(null);
   while (day.getMonth() === month) {
     week.push(new Date(day));
@@ -53,7 +39,6 @@ function buildMonthMatrix(year, month) {
     }
     day.setDate(day.getDate() + 1);
   }
-  // trailing pad
   while (week.length < 7) week.push(null);
   matrix.push(week);
   return matrix;
@@ -63,7 +48,7 @@ export default function Calendriers() {
   const [current, setCurrent] = useState(() => startOfMonth(new Date()));
   const [calendriers, setCalendriers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDay, setSelectedDay] = useState(null); // 'YYYY-MM-DD' key
+  const [selectedDay, setSelectedDay] = useState(null);
   const [hoverDay, setHoverDay] = useState(null);
 
   useEffect(() => {
@@ -74,7 +59,6 @@ export default function Calendriers() {
     setLoading(true);
     try {
       const res = await getAllCalendriers();
-      // backend returns array of calendrier objects with start_time, end_time, Exam included
       const list = res?.data ?? res ?? [];
       setCalendriers(Array.isArray(list) ? list : list?.calendriers ?? []);
     } catch (err) {
@@ -84,23 +68,72 @@ export default function Calendriers() {
     }
   }
 
-  // map dateKey -> [events]
   const eventsByDay = useMemo(() => {
     const map = {};
     for (const c of calendriers) {
-      // calendrier.start_time is a datetime; convert to local date key
-      const start = new Date(c.start_time);
+      const exam = c.Exam ?? c.exam ?? null;
+
+      let start = null;
+      let end = null;
+
+      if (c.start_time) {
+        start = new Date(c.start_time);
+        if (c.end_time) {
+          end = new Date(c.end_time);
+        } else if (exam?.duree != null) {
+          end = new Date(start.getTime() + Number(exam.duree) * 60000);
+        }
+      } else if (exam?.date) {
+        try {
+          // start from exam.date (could be full ISO or just date)
+          let d = new Date(exam.date);
+
+          // if exam.time is provided (like "08:30" or "8:30"), combine it
+          if (exam.time && typeof exam.time === "string") {
+            const [hhRaw, mmRaw] = exam.time.split(":");
+            const hh = Number(hhRaw);
+            const mm = Number(mmRaw || 0);
+            if (!Number.isNaN(hh)) {
+              d.setHours(hh, Number.isNaN(mm) ? 0 : mm, 0, 0);
+            }
+          }
+
+          // if exam.date string is just a date (no time), `new Date('YYYY-MM-DD')` becomes midnight UTC —
+          // it may shift depending on timezone. This is an unavoidable JS/date issue; see notes below.
+          start = d;
+          if (exam?.duree != null) {
+            end = new Date(start.getTime() + Number(exam.duree) * 60000);
+          }
+        } catch (e) {
+          // if parsing fails, skip this entry
+          console.warn("Failed to parse exam.date/time", exam?.date, exam?.time, e);
+          continue;
+        }
+      } else {
+        // no start information; skip
+        continue;
+      }
+
+      // Ensure we have an end time; default to 60 minutes if absent
+      if (!end && start) {
+        end = new Date(start.getTime() + 60 * 60000);
+      }
+
+      // If still no start or end, skip
+      if (!start || !end) continue;
+
       const key = formatDateKey(start);
       if (!map[key]) map[key] = [];
       map[key].push({
-        id: c.id,
-        start: new Date(c.start_time),
-        end: new Date(c.end_time),
-        exam: c.Exam ?? c.exam ?? null, // backend includes exam
+        id: c.id ?? (exam ? `exam-${exam.id}` : undefined),
+        start,
+        end,
+        exam,
         raw: c,
       });
     }
-    // sort events by start
+
+    // sort each day's events by start
     for (const k of Object.keys(map)) {
       map[k].sort((a, b) => a.start - b.start);
     }
@@ -116,24 +149,7 @@ export default function Calendriers() {
     setCurrent((d) => addMonths(d, 1));
   }
 
-  function dayHasEvents(date) {
-    if (!date) return false;
-    return !!eventsByDay[formatDateKey(date)];
-  }
-
-  // schedule grid hours
-  const HOURS = Array.from({ length: 12 }, (_, i) => 7 + i); // 7..18
-
-  // compute event style (gridRow start/end)
-  function computeGridRow(event) {
-    // grid rows start at 1 = hour 7
-    const startHour = event.start.getHours() + event.start.getMinutes() / 60;
-    const endHour = event.end.getHours() + event.end.getMinutes() / 60;
-    const rowStart = Math.max(1, Math.floor((startHour - 7) + 1)); // 7 -> 1
-    const span = Math.max(1, Math.ceil(endHour - startHour));
-    const rowEnd = rowStart + span;
-    return { rowStart, rowEnd };
-  }
+  const HOURS = Array.from({ length: 12 }, (_, i) => 7 + i);
 
   const todayKey = formatDateKey(new Date());
   const monthAbbrev = MONTH_NAMES[current.getMonth()];
@@ -154,7 +170,7 @@ export default function Calendriers() {
 
           <div className="flex items-center bg-slate-800 text-white px-3 py-2 rounded shadow">
             <span className="mr-3 font-semibold">{monthAbbrev} {current.getFullYear()}</span>
-            <button onClick={() => setCurrent(startOfMonth(new Date()))} className="text-sm opacity-80 hover:opacity-100">Aujourd’hui</button>
+            <button onClick={() => setCurrent(startOfMonth(new Date()))} className="text-sm opacity-80 hover:opacity-100">Aujourd'hui</button>
           </div>
 
           <button onClick={nextMonth} className="flex items-center gap-2 bg-white text-slate-700 px-3 py-2 rounded shadow hover:-translate-x-0.5 transition">
@@ -165,12 +181,10 @@ export default function Calendriers() {
       </div>
 
       <div className="bg-white border rounded-lg p-4 shadow-sm">
-        {/* weekday header */}
         <div className="grid grid-cols-7 gap-2 text-center text-xs uppercase text-slate-500 mb-3">
           <div>Dim</div><div>Lun</div><div>Mar</div><div>Mer</div><div>Jeu</div><div>Ven</div><div>Sam</div>
         </div>
 
-        {/* month matrix */}
         <div className="grid grid-cols-7 gap-3">
           {matrix.map((week, wi) =>
             week.map((date, di) => {
@@ -191,13 +205,15 @@ export default function Calendriers() {
                 >
                   <div className="flex justify-between items-start">
                     <div className="text-sm font-medium">{date ? date.getDate() : ""}</div>
-                    <div className="text-xs text-slate-400">{date ? (date.getMonth() === current.getMonth() ? "" : "") : ""}</div>
+                    {/* 🔴 RED DOT for days with events */}
+                    {events.length > 0 && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-600"></div>
+                    )}
                   </div>
 
-                  {/* bottom summary (bold) shown on hover (or always small) */}
                   <div className="absolute left-2 right-2 bottom-2">
                     {events.length > 0 && (
-                      <div className={`text-sm font-semibold truncate ${ (hoverDay === key || selectedDay === key) ? "text-ellipsis" : "text-ellipsis" }`}>
+                      <div className={`text-sm font-semibold truncate`}>
                         {events.slice(0, 2).map((ev, idx) => {
                           const now = new Date();
                           const passed = ev.end < now;
@@ -213,9 +229,8 @@ export default function Calendriers() {
                     )}
                   </div>
 
-                  {/* subtle badge for event count top-right */}
                   {events.length > 0 && (
-                    <div className="absolute top-2 right-2">
+                    <div className="absolute top-2 left-2">
                       <span className="inline-flex items-center justify-center bg-indigo-600 text-white text-xs px-2 py-0.5 rounded-full">{events.length}</span>
                     </div>
                   )}
@@ -226,18 +241,14 @@ export default function Calendriers() {
         </div>
       </div>
 
-      {/* Inline child: day's schedule */}
       {selectedDay && (
         <div className="bg-white border rounded-lg p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">Emploi du temps — {selectedDay}</h2>
-            <div>
-              <button onClick={() => { setSelectedDay(null); }} className="px-3 py-1 rounded bg-slate-100">Fermer</button>
-            </div>
+            <button onClick={() => setSelectedDay(null)} className="px-3 py-1 rounded bg-slate-100">Fermer</button>
           </div>
 
           <div className="grid grid-cols-12 gap-4">
-            {/* left column: hour labels */}
             <div className="col-span-2">
               {HOURS.map((h) => (
                 <div key={h} className={`h-12 flex items-center ${h === 12 ? "text-center text-slate-400 italic" : ""}`}>
@@ -246,13 +257,10 @@ export default function Calendriers() {
               ))}
             </div>
 
-            {/* schedule grid */}
             <div className="col-span-10 relative">
               <div className="relative border rounded-lg overflow-hidden" style={{ minHeight: "12 * 3rem" }}>
-                {/* grid rows - each hour a row */}
                 <div className="grid" style={{ gridTemplateRows: `repeat(${HOURS.length}, 3rem)` }}>
                   {HOURS.map((h) => {
-                    // lunch row style
                     if (h === 12) {
                       return (
                         <div key={h} className="border-b flex items-center justify-center bg-yellow-50 text-slate-500">
@@ -264,12 +272,10 @@ export default function Calendriers() {
                   })}
                 </div>
 
-                {/* place events as absolutely positioned blocks using grid row calculation */}
                 <div className="absolute inset-0 pointer-events-none">
                   {(() => {
                     const evts = eventsByDay[selectedDay] ?? [];
                     return evts.map((ev) => {
-                      // calculate position
                       const startHour = ev.start.getHours() + ev.start.getMinutes() / 60;
                       const endHour = ev.end.getHours() + ev.end.getMinutes() / 60;
                       const topPercent = ((startHour - 7) / (HOURS.length)) * 100;
@@ -304,7 +310,6 @@ export default function Calendriers() {
         </div>
       )}
 
-      {/* Loading indicator */}
       {loading && <div className="text-sm text-slate-500">Chargement des calendriers...</div>}
     </div>
   );
