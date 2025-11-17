@@ -20,7 +20,4 @@ salleRouter.delete("/:id",authorizeRoles("admin"), deleteSalle);
 // Accès global
 salleRouter.get("/:id", getSalleById);
 
-// Supprimer une place précise d’une salle
-// salleRouter.delete("/:salleId/places/:placeId", deletePlace);
-
 export default salleRouter;

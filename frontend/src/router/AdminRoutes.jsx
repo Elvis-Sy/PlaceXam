@@ -11,6 +11,7 @@ import Matieres from "../pages/users/admin/Matieres";
 import Calendrier from "../pages/users/admin/Calendriers";
 import Affectation from "../pages/users/admin/Affectations";
 import Supervision from "../pages/users/admin/Supervision.jsx";
+import Profile from "../pages/users/admin/Profile.jsx";
 
 export default (
   <Route element={<ProtectedRoute />}>
@@ -24,6 +25,7 @@ export default (
     >
       <Route index element={<Dashboard />} />
       <Route path="dashboard" element={<Dashboard />} />
+      <Route path="profile" element={<Profile />} />
       <Route path="users" element={<Users />} />
       <Route path="salles" element={<Salles />} />
       <Route path="exams" element={<Exams />} />

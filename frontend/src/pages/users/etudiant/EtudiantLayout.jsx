@@ -18,8 +18,6 @@ export default function EtudiantLayout() {
 
   const accountMenuItems = [
     { label: "Profile", path: "/etudiant/profile", icon: <AccountCircleIcon /> }, 
-    { label: "Settings", path: "/etudiant/settings", icon: <SettingsIcon /> },
-    { label: "Logout", path: "/logout", icon: <LogoutIcon /> },
   ];
 
   return (

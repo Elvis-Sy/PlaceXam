@@ -12,8 +12,8 @@ export const getDashboardData = async (req, res) => {
 
 export const autoAssignStudents = async (req, res) => {
   try {
-    await dashboardService.autoAssignStudents();
-    res.status(200).json({ message: "Students have been auto-assigned to seats" });
+    const result = await dashboardService.autoAssignStudents();
+    res.status(200).json(result);
   } catch (error) {
     console.error("Error auto-assigning students:", error);
     res.status(500).json({ error: "Failed to auto-assign students" });
@@ -22,10 +22,21 @@ export const autoAssignStudents = async (req, res) => {
 
 export const autoAssignSupervisors = async (req, res) => {
   try {
-    await dashboardService.autoAssignSupervisors();
-    res.status(200).json({ message: "Supervisors have been auto-assigned to rooms" });
+    const result = await dashboardService.autoAssignSupervisors();
+    res.status(200).json(result);
   } catch (error) {
     console.error("Error auto-assigning supervisors:", error);
     res.status(500).json({ error: "Failed to auto-assign supervisors" });
+  }
+};
+
+export const getPlacesForExam = async (req, res) => {
+  const { examId } = req.params;
+  try {
+    const places = await dashboardService.fetchPlacesForExam(examId);
+    res.status(200).json(places);
+  } catch (error) {
+    console.error("Error fetching places for exam:", error);
+    res.status(500).json({ error: "Failed to fetch places for exam" });
   }
 };

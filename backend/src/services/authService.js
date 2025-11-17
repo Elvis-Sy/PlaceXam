@@ -147,4 +147,37 @@ export class AuthService {
 
         return { success: true, message: "Mot de passe réinitialisé avec succès." };
     }
+
+    /**
+   * Changer le mot de passe d'un utilisateur authentifié
+   * @param {string} userId - ID de l'utilisateur
+   * @param {string} oldPassword - Ancien mot de passe
+   * @param {string} newPassword - Nouveau mot de passe
+   * @throws Erreur si ancien mot de passe invalide ou autre erreur
+   */
+  static async changePassword(userId, oldPassword, newPassword) {
+    // Récupérer l'utilisateur
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error("Utilisateur non trouvé");
+    }
+
+    // Vérifier que l'ancien mot de passe est correct
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      throw new Error("Ancien mot de passe incorrect");
+    }
+
+    // Vérifier que le nouveau mot de passe est différent de l'ancien
+    const isSame = await bcrypt.compare(newPassword, user.password);
+    if (isSame) {
+      throw new Error("Le nouveau mot de passe doit être différent de l'ancien");
+    }
+
+    // Hasher le nouveau mot de passe et mettre à jour
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await user.update({ password: hashedPassword });
+
+    return { message: "Mot de passe modifié avec succès" };
+  }
 }

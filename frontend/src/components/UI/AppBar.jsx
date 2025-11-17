@@ -147,7 +147,11 @@ export default function MyAppBar({ menuItems, usersSubItems, accountMenuItems })
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static" sx={{ boxShadow: 2 }}>
+      <AppBar 
+      position="static" 
+      sx={{ boxShadow: 2, 
+      backgroundColor: 'darkblue'
+      }} >
         <Toolbar>
           <IconButton
             size="large"

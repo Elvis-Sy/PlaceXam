@@ -6,11 +6,11 @@ export const fetchDashboardData = async () => {
 };
 
 export const autoAssignStudents = async () => {
-  const response = await axios.post("/assign-students");
+  const response = await axios.post("/dashboard/assign-students");
   return response.data?.data ?? response.data;
 };
 
 export const autoAssignSupervisors = async () => {
-  const response = await axios.post("/assign-supervisors");
+  const response = await axios.post("/dashboard/assign-supervisors");
   return response.data?.data ?? response.data;
 };

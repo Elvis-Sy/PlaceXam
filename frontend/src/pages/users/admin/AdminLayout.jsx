@@ -30,8 +30,7 @@ export default function AdminLayout() {
   ];
 
   const accountMenuItems = [
-    { label: "Settings", path: "/admin/settings", icon: <SettingsIcon /> },
-    { label: "Logout", path: "/logout", icon: <LogoutIcon /> },
+    { label: "Profile", path: "/admin/profile", icon: <PersonIcon /> },  
   ];
 
   return (

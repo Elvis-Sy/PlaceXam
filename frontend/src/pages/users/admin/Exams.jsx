@@ -182,21 +182,23 @@ export default function Exams() {
           <thead className="bg-slate-100 border-b border-gray-500/80">
             <tr>
               <th className="px-4 py-3 text-left">#</th>
-              <th className="px-4 py-3 text-left">Date</th>
+              <th className="px-4 py-3 text-left">Date et heure</th>
               <th className="px-4 py-3 text-left">Durée (min)</th>
               <th className="px-4 py-3 text-left">Matière</th>
+              <th className="px-4 py-3 text-left">Niveau</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200/80">
-            {loading ? <tr><td colSpan={5} className="p-8 text-center">Chargement...</td></tr> :
-            filtered.length === 0 ? <tr><td colSpan={5} className="p-8 text-center">Aucun examen</td></tr> :
+            {loading ? <tr><td colSpan={6} className="p-8 text-center">Chargement...</td></tr> :
+            filtered.length === 0 ? <tr><td colSpan={6} className="p-8 text-center">Aucun examen</td></tr> :
             filtered.map((x,i)=>(
               <tr key={x.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3">{i+1}</td>
-                <td className="px-4 py-3">{new Date(x.date).toLocaleString().slice(0, 10)}</td>
+                <td className="px-4 py-3">{new Date(x.date).toLocaleString()}</td>
                 <td className="px-4 py-3">{x.duree}</td>
                 <td className="px-4 py-3">{getMatiereLabel(x)}</td>
+                <td className="px-4 py-3">{x.Matiere?.niveau ?? x.matiere?.niveau ?? ""}</td>
                 <td className="px-4 py-3 text-right">
                   <div className="inline-flex gap-2">
                     <button onClick={()=>openEdit(x)} className="p-2 rounded hover:bg-slate-100"><Edit size={16}/></button>
@@ -216,8 +218,8 @@ export default function Exams() {
         {editing && (
           <form onSubmit={submit} className="space-y-4">
             <div>
-              <label className="block text-sm">Date</label>
-              <input required type="date" value={editing.date?.slice(0,10) ?? ""} onChange={(e)=>setEditing(s=>({...s, date: e.target.value}))}
+              <label className="block text-sm">Date et heure</label>
+              <input required type="datetime-local" value={editing.date?.slice(0,16) ?? ""} onChange={(e)=>setEditing(s=>({...s, date: e.target.value}))}
                 className="w-full border border-slate-300 px-4 py-2.5 rounded-xl
                           focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40
                           outline-none transition-all"

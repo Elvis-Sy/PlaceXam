@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { getAllCalendriers } from "../../../services/calendriers.js";
-
 
 function Modal({ open, onClose, title, children }) {
   if (!open) return null;
@@ -44,15 +43,28 @@ const MONTH_NAMES = [
   "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"
 ];
 
+// Palette de couleurs par niveau
+const NIVEAU_COLORS = {
+  "L1": { bg: "bg-blue-100", border: "border-blue-400", text: "text-blue-900" },
+  "L2": { bg: "bg-purple-100", border: "border-purple-400", text: "text-purple-900" },
+  "L3": { bg: "bg-green-100", border: "border-green-400", text: "text-green-900" },
+  "M1": { bg: "bg-orange-100", border: "border-orange-400", text: "text-orange-900" },
+  "M2": { bg: "bg-red-100", border: "border-red-400", text: "text-red-900" },
+  "default": { bg: "bg-slate-100", border: "border-slate-400", text: "text-slate-900" }
+};
+
+function getNiveauColor(niveau) {
+  return NIVEAU_COLORS[niveau] || NIVEAU_COLORS["default"];
+}
+
 function startOfMonth(date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 }
-function endOfMonth(date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
-}
+
 function addMonths(date, n) {
   return new Date(date.getFullYear(), date.getMonth() + n, 1);
 }
+
 function formatDateKey(d) {
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -62,7 +74,6 @@ function formatDateKey(d) {
 
 function buildMonthMatrix(year, month) {
   const first = new Date(year, month, 1);
-  const last = new Date(year, month + 1, 0);
   const matrix = [];
   let week = [];
   let day = new Date(first);
@@ -86,9 +97,8 @@ export default function Calendriers() {
   const [calendriers, setCalendriers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState(null);
-  const [hoverDay, setHoverDay] = useState(null);
 
-  // NOUVEAUX ÉTATS pour la modale de création
+  // States for creation modal
   const [creationModalOpen, setCreationModalOpen] = useState(false);
   const [dateToCreate, setDateToCreate] = useState(null);
 
@@ -126,10 +136,8 @@ export default function Calendriers() {
         }
       } else if (exam?.date) {
         try {
-          // start from exam.date (could be full ISO or just date)
           let d = new Date(exam.date);
 
-          // if exam.time is provided (like "08:30" or "8:30"), combine it
           if (exam.time && typeof exam.time === "string") {
             const [hhRaw, mmRaw] = exam.time.split(":");
             const hh = Number(hhRaw);
@@ -139,28 +147,22 @@ export default function Calendriers() {
             }
           }
 
-          // if exam.date string is just a date (no time), `new Date('YYYY-MM-DD')` becomes midnight UTC —
-          // it may shift depending on timezone. This is an unavoidable JS/date issue; see notes below.
           start = d;
           if (exam?.duree != null) {
             end = new Date(start.getTime() + Number(exam.duree) * 60000);
           }
         } catch (e) {
-          // if parsing fails, skip this entry
           console.warn("Failed to parse exam.date/time", exam?.date, exam?.time, e);
           continue;
         }
       } else {
-        // no start information; skip
         continue;
       }
 
-      // Ensure we have an end time; default to 60 minutes if absent
       if (!end && start) {
         end = new Date(start.getTime() + 60 * 60000);
       }
 
-      // If still no start or end, skip
       if (!start || !end) continue;
 
       const key = formatDateKey(start);
@@ -171,15 +173,35 @@ export default function Calendriers() {
         end,
         exam,
         raw: c,
+        niveau: exam?.Matiere?.niveau || "default",
       });
     }
 
-    // sort each day's events by start
     for (const k of Object.keys(map)) {
       map[k].sort((a, b) => a.start - b.start);
     }
     return map;
   }, [calendriers]);
+
+  // Fonction pour regrouper les examens par heure
+  const getExamsPerHour = (day) => {
+    const evts = eventsByDay[day] ?? [];
+    if (!evts.length) return {};
+
+    const hourMap = {};
+
+    evts.forEach((evt) => {
+      const startHour = evt.start.getHours();
+      const endHour = evt.end.getHours();
+
+      for (let h = startHour; h < endHour; h++) {
+        if (!hourMap[h]) hourMap[h] = [];
+        hourMap[h].push(evt);
+      }
+    });
+
+    return hourMap;
+  };
 
   const matrix = useMemo(() => buildMonthMatrix(current.getFullYear(), current.getMonth()), [current]);
 
@@ -190,15 +212,12 @@ export default function Calendriers() {
     setCurrent((d) => addMonths(d, 1));
   }
 
-  // NOUVELLE FONCTION pour le double-clic
   function handleDoubleClick(date) {
     if (!date) return;
     setDateToCreate(date);
     setCreationModalOpen(true);
     setSelectedDay(null);
   }
-
-  const HOURS = Array.from({ length: 12 }, (_, i) => 7 + i);
 
   const todayKey = formatDateKey(new Date());
   const monthAbbrev = MONTH_NAMES[current.getMonth()];
@@ -242,11 +261,11 @@ export default function Calendriers() {
               const key = date ? formatDateKey(date) : `empty-${wi}-${di}`;
               const isToday = key === todayKey;
               const events = date ? eventsByDay[key] ?? [] : [];
+              // comment utiliser ce events ?
+
               return (
                 <div
                   key={key}
-                  onMouseEnter={() => setHoverDay(date ? key : null)}
-                  onMouseLeave={() => setHoverDay(null)}
                   onClick={() => date && setSelectedDay((s) => (s === key ? null : key))}
                   onDoubleClick={() => handleDoubleClick(date)}
                   className={
@@ -256,36 +275,11 @@ export default function Calendriers() {
                   }
                 >
                   <div className="flex justify-between items-start">
+                    
                     <div className="text-sm font-medium">{date ? date.getDate() : ""}</div>
-                    {/* 🔴 RED DOT for days with events */}
-                    {events.length > 0 && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-red-600"></div>
-                    )}
                   </div>
 
-                  <div className="absolute left-2 right-2 bottom-2">
-                    {events.length > 0 && (
-                      <div className={`text-sm font-semibold truncate`}>
-                        {events.slice(0, 2).map((ev, idx) => {
-                          const now = new Date();
-                          const passed = ev.end < now;
-                          const color = passed ? "text-red-600" : "text-emerald-700";
-                          return (
-                            <div key={ev.id || idx} className={`text-xs ${color} font-bold`}>
-                              {ev.exam?.label ?? ev.exam?.matiere?.label ?? "Examen"} {ev.start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                            </div>
-                          );
-                        })}
-                        {events.length > 2 && <div className="text-xs text-slate-400">+{events.length - 2} autres</div>}
-                      </div>
-                    )}
-                  </div>
-
-                  {events.length > 0 && (
-                    <div className="absolute top-2 left-2">
-                      <span className="inline-flex items-center justify-center bg-indigo-600 text-white text-xs px-2 py-0.5 rounded-full">{events.length}</span>
-                    </div>
-                  )}
+                  
                 </div>
               );
             })
@@ -293,77 +287,91 @@ export default function Calendriers() {
         </div>
       </div>
 
+      {/* Modal De L'Emploi Du Temps */}
       {selectedDay && (
-        <div className="bg-white border border-gray-500/80 rounded-lg p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Emploi du temps — {selectedDay}</h2>
-            <button onClick={() => setSelectedDay(null)} className="px-3 py-1 rounded bg-slate-100">Fermer</button>
-          </div>
-
-          <div className="grid grid-cols-12 gap-4">
-            <div className="col-span-2">
-              {HOURS.map((h) => (
-                <div key={h} className={`h-12 flex items-center ${h === 12 ? "text-center text-slate-400 italic" : ""}`}>
-                  {h === 12 ? "12:00 - 13:00" : `${String(h).padStart(2, "0")}:00`}
-                </div>
-              ))}
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white border rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-auto">
+            <div className="sticky top-0 bg-white border-b flex items-center justify-between p-4">
+              <h2 className="text-lg font-semibold">Emploi du temps — {selectedDay}</h2>
+              <button onClick={() => setSelectedDay(null)} className="p-1 hover:bg-slate-100 rounded transition">
+                <X size={20} />
+              </button>
             </div>
 
-            <div className="col-span-10 relative">
-              <div className="relative border border-gray-500/80 rounded-lg overflow-hidden" style={{ minHeight: "12 * 3rem" }}>
-                <div className="grid" style={{ gridTemplateRows: `repeat(${HOURS.length}, 3rem)` }}>
-                  {HOURS.map((h) => {
-                    if (h === 12) {
-                      return (
-                        <div key={h} className="border-b flex items-center justify-center bg-yellow-50 text-slate-500">
-                          Pause déjeuner (12:00 - 13:00)
-                        </div>
+            <div className="p-4">
+              {(() => {
+                const evts = eventsByDay[selectedDay] ?? [];
+                const hourMap = getExamsPerHour(selectedDay);
+
+                // Afficher toutes les heures de 7h à 18h
+                const allHours = Array.from({ length: 12 }, (_, i) => 7 + i);
+
+                return (
+                  <div className="space-y-2 max-w-2.5xl">
+                    {allHours.map((hour) => {
+                      const examsAtHour = hourMap[hour] || [];
+                      const uniqueExams = Array.from(
+                        new Map(examsAtHour.map((e) => [e.id, e])).values()
                       );
-                    }
-                    return <div key={h} className="border-b border-gray-200/80" />;
-                  })}
-                </div>
 
-                <div className="absolute inset-0 pointer-events-none">
-                  {(() => {
-                    const evts = eventsByDay[selectedDay] ?? [];
-                    return evts.map((ev) => {
-                      const startHour = ev.start.getHours() + ev.start.getMinutes() / 60;
-                      const endHour = ev.end.getHours() + ev.end.getMinutes() / 60;
-                      const topPercent = ((startHour - 7) / (HOURS.length)) * 100;
-                      const heightPercent = ((endHour - startHour) / (HOURS.length)) * 100;
-                      const now = new Date();
-                      const passed = ev.end < now;
-                      const colorBg = passed ? "bg-red-100" : "bg-emerald-100";
-                      const colorText = passed ? "text-red-800" : "text-emerald-800";
+                      // Si vide, afficher une ligne blanche avec bordure grise
+                      if (!uniqueExams.length) {
+                        return (
+                          <div key={`hour-${hour}`} className="flex gap-2 items-stretch">
+                            {/* Heure */}
+                            <div className="w-16 bg-white border border-gray-300 rounded px-2 py-2 text-sm font-semibold text-slate-700 flex items-center justify-center flex-shrink-0">
+                              {String(hour).padStart(2, "0")}:00
+                            </div>
+
+                            {/* Ligne vide */}
+                            <div className="flex-1 bg-white border border-gray-300 rounded transition-transform hover:scale-y-110 origin-left" />
+                          </div>
+                        );
+                      }
 
                       return (
-                        <div
-                          key={ev.id}
-                          className={`absolute left-2 right-2 rounded-md p-2 shadow pointer-events-auto transform hover:scale-[1.01] transition`}
-                          style={{
-                            top: `${topPercent}%`,
-                            height: `${Math.max(2, heightPercent)}%`,
-                          }}
-                          title={`${ev.exam?.label ?? ev.exam?.matiere?.label ?? "Examen"} ${ev.start.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`}
-                        >
-                          <div className={`${colorBg} ${colorText} px-2 py-1 rounded-md font-semibold`}>
-                            <div className="text-sm">{ev.exam?.label ?? ev.exam?.matiere?.label ?? "Examen"}</div>
-                            <div className="text-xs">{ev.start.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} - {ev.end.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
+                        <div key={`hour-${hour}`} className="flex gap-2 items-stretch">
+                          {/* Heure */}
+                          <div className="w-16 bg-slate-100 border border-slate-300 rounded px-2 py-2 text-sm font-semibold text-slate-700 flex items-center justify-center flex-shrink-0">
+                            {String(hour).padStart(2, "0")}:00
+                          </div>
+
+                          {/* Examens côte à côte */}
+                          <div className="flex gap-1 flex-1 transition-transform hover:scale-y-110 origin-left">
+                            {uniqueExams.map((exam) => {
+                              const color = getNiveauColor(exam.niveau);
+                              const timeStr = `${String(exam.start.getHours()).padStart(2, "0")}:${String(exam.start.getMinutes()).padStart(2, "0")} - ${String(exam.end.getHours()).padStart(2, "0")}:${String(exam.end.getMinutes()).padStart(2, "0")}`;
+
+                              return (
+                                <div
+                                  key={exam.id}
+                                  className={`flex-1 ${color.bg} ${color.border} border-2 rounded px-3 py-2`}
+                                >
+                                  <div className={`${color.text} font-bold text-sm`}>
+                                    {exam.exam?.Matiere?.label || "Examen"}
+                                  </div>
+                                  <div className={`${color.text} text-xs`}>
+                                    {exam.niveau}
+                                  </div>
+                                  <div className={`${color.text} text-xs opacity-80`}>
+                                    {timeStr}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       );
-                    });
-                  })()}
-                </div>
-              </div>
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
       )}
 
-      {loading && <div className="text-sm text-slate-500">Chargement des calendriers...</div>}
-
+      {/* CREATION MODAL (unchanged) */}
       <Modal 
         open={creationModalOpen} 
         onClose={() => setCreationModalOpen(false)} 
@@ -374,7 +382,6 @@ export default function Calendriers() {
                 Examen du : 
                 <strong className="ml-1 text-indigo-600">{dateToCreate?.toLocaleDateString('fr-FR')}</strong>.
             </p>
-            {/* ⚠️ ICI IL FAUDRAIT AJOUTER VOTRE FORMULAIRE RÉEL */}
             <form className="space-y-4">
                 <input 
                     type="text" 
@@ -385,7 +392,7 @@ export default function Calendriers() {
                 <input 
                     type="datetime-local" 
                     value={dateToCreate?.toISOString().slice(0, 16) ?? ''}
-                    onChange={() => {}} // Lire seulement, ou ajouter la logique pour l'édition de l'heure
+                    onChange={() => {}}
                     className="w-full border border-slate-300 px-4 py-2 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/40"
                 />
 
@@ -396,6 +403,8 @@ export default function Calendriers() {
             </form>
         </div>
       </Modal>
+
+      {loading && <div className="text-sm text-slate-500">Chargement des calendriers...</div>}
     </div>
   );
 }

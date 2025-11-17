@@ -8,6 +8,7 @@ import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import { useNavigate } from 'react-router-dom';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 export default function AccountMenu({ accountMenuItems }) {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -87,6 +88,13 @@ export default function AccountMenu({ accountMenuItems }) {
           </MenuItem>
         ))}
         <Divider />
+        <MenuItem onHover ={{backgroundColor: 'rgba(241, 32, 50, 0.1)'}} onClick={() => { handleNavigate('/logout'); }}>
+          <ListItemIcon>
+            <LogoutIcon fontSize="small" />
+          </ListItemIcon>
+          Logout
+        </MenuItem>
+          
       </Menu>
     </React.Fragment>
   );

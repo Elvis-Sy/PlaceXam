@@ -1,7 +1,42 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { getAllCalendriers } from "../../../services/calendriers.js";
-import { useAuth } from "../../../hooks/useAuth";
+
+function Modal({ open, onClose, title, children }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Background */}
+      <div
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-fadeIn"
+        onClick={onClose}
+      />
+
+      {/* Container */}
+      <div className="relative z-10 w-full max-w-xl mx-4 animate-scaleIn">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-500/80 bg-slate-50">
+            <h3 className="text-lg font-bold text-slate-800">{title}</h3>
+            <button
+              onClick={onClose}
+              className="text-slate-600 hover:bg-slate-200 p-1 rounded transition"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="p-6">{children}</div>
+        </div>
+      </div>
+      <style>{`
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity:1; transform:scale(1); }}
+        .animate-scaleIn { animation: scaleIn .18s ease-out; }
+        @keyframes fadeIn { from { opacity:0;} to { opacity:1;} }
+        .animate-fadeIn { animation: fadeIn .25s ease-out; }
+      `}</style>
+    </div>
+  );
+}
 
 const MONTH_NAMES = [
   "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
@@ -10,6 +45,9 @@ const MONTH_NAMES = [
 
 function startOfMonth(date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+function endOfMonth(date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
 }
 function addMonths(date, n) {
   return new Date(date.getFullYear(), date.getMonth() + n, 1);
@@ -20,8 +58,10 @@ function formatDateKey(d) {
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
+
 function buildMonthMatrix(year, month) {
   const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
   const matrix = [];
   let week = [];
   let day = new Date(first);
@@ -40,13 +80,16 @@ function buildMonthMatrix(year, month) {
   return matrix;
 }
 
-export default function DashboardEtudiant() {
-  const { user } = useAuth();
+export default function Calendriers() {
   const [current, setCurrent] = useState(() => startOfMonth(new Date()));
   const [calendriers, setCalendriers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState(null);
   const [hoverDay, setHoverDay] = useState(null);
+
+  // States for creation modal
+  const [creationModalOpen, setCreationModalOpen] = useState(false);
+  const [dateToCreate, setDateToCreate] = useState(null);
 
   useEffect(() => {
     fetchCalendriers();
@@ -65,42 +108,87 @@ export default function DashboardEtudiant() {
     }
   }
 
-  // Build eventsByDay filtered by student's niveau (same logic you had)
   const eventsByDay = useMemo(() => {
     const map = {};
     for (const c of calendriers) {
-      const examNiveau = c.Exam?.Matiere?.niveau ?? c.exam?.matiere?.niveau;
-      if (examNiveau !== user?.niveau) continue;
+      const exam = c.Exam ?? c.exam ?? null;
 
-      const start = new Date(c.start_time);
+      let start = null;
+      let end = null;
+
+      if (c.start_time) {
+        start = new Date(c.start_time);
+        if (c.end_time) {
+          end = new Date(c.end_time);
+        } else if (exam?.duree != null) {
+          end = new Date(start.getTime() + Number(exam.duree) * 60000);
+        }
+      } else if (exam?.date) {
+        try {
+          let d = new Date(exam.date);
+
+          if (exam.time && typeof exam.time === "string") {
+            const [hhRaw, mmRaw] = exam.time.split(":");
+            const hh = Number(hhRaw);
+            const mm = Number(mmRaw || 0);
+            if (!Number.isNaN(hh)) {
+              d.setHours(hh, Number.isNaN(mm) ? 0 : mm, 0, 0);
+            }
+          }
+
+          start = d;
+          if (exam?.duree != null) {
+            end = new Date(start.getTime() + Number(exam.duree) * 60000);
+          }
+        } catch (e) {
+          console.warn("Failed to parse exam.date/time", exam?.date, exam?.time, e);
+          continue;
+        }
+      } else {
+        continue;
+      }
+
+      if (!end && start) {
+        end = new Date(start.getTime() + 60 * 60000);
+      }
+
+      if (!start || !end) continue;
+
       const key = formatDateKey(start);
       if (!map[key]) map[key] = [];
       map[key].push({
-        id: c.id,
-        start: new Date(c.start_time),
-        end: new Date(c.end_time),
-        exam: c.Exam ?? c.exam ?? null,
+        id: c.id ?? (exam ? `exam-${exam.id}` : undefined),
+        start,
+        end,
+        exam,
         raw: c,
       });
     }
+
     for (const k of Object.keys(map)) {
       map[k].sort((a, b) => a.start - b.start);
     }
     return map;
-  }, [calendriers, user?.niveau]);
+  }, [calendriers]);
 
   const matrix = useMemo(() => buildMonthMatrix(current.getFullYear(), current.getMonth()), [current]);
 
   function prevMonth() {
     setCurrent((d) => addMonths(d, -1));
-    setSelectedDay(null);
   }
   function nextMonth() {
     setCurrent((d) => addMonths(d, 1));
+  }
+
+  function handleDoubleClick(date) {
+    if (!date) return;
+    setDateToCreate(date);
+    setCreationModalOpen(true);
     setSelectedDay(null);
   }
 
   const HOURS = Array.from({ length: 12 }, (_, i) => 7 + i);
+
   const todayKey = formatDateKey(new Date());
   const monthAbbrev = MONTH_NAMES[current.getMonth()];
 
@@ -108,9 +196,9 @@ export default function DashboardEtudiant() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Dashboard Étudiant</h1>
-          <p className="text-sm text-slate-500">
-            Vos examens pour le niveau {user?.niveau} — cliquez sur un jour pour voir l'emploi du temps.
+          <h1 className="text-3xl font-semibold text-slate-800">Calendrier</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Vue mensuelle — cliquez sur un jour pour voir l'emploi du temps.
           </p>
         </div>
 
@@ -132,8 +220,7 @@ export default function DashboardEtudiant() {
         </div>
       </div>
 
-      {/* Month grid — identical to Calendriers.jsx */}
-      <div className="bg-white border rounded-lg p-4 shadow-sm">
+      <div className="bg-white border border-gray-500/80 rounded-lg p-4 shadow-sm">
         <div className="grid grid-cols-7 gap-2 text-center text-xs uppercase text-slate-500 mb-3">
           <div>Dim</div><div>Lun</div><div>Mar</div><div>Mer</div><div>Jeu</div><div>Ven</div><div>Sam</div>
         </div>
@@ -150,15 +237,15 @@ export default function DashboardEtudiant() {
                   onMouseEnter={() => setHoverDay(date ? key : null)}
                   onMouseLeave={() => setHoverDay(null)}
                   onClick={() => date && setSelectedDay((s) => (s === key ? null : key))}
+                  onDoubleClick={() => handleDoubleClick(date)}
                   className={
-                    "min-h-[96px] rounded-lg p-2 relative transition-transform transform " +
+                    "min-h-24 rounded-lg p-2 relative transition-transform transform " +
                     (date ? "cursor-pointer hover:scale-[1.02] " : "opacity-30 ") +
                     (isToday ? "ring-2 ring-indigo-200 " : "")
                   }
                 >
                   <div className="flex justify-between items-start">
                     <div className="text-sm font-medium">{date ? date.getDate() : ""}</div>
-                    {/* red dot for days with events */}
                     {events.length > 0 && (
                       <div className="w-2.5 h-2.5 rounded-full bg-red-600"></div>
                     )}
@@ -166,14 +253,14 @@ export default function DashboardEtudiant() {
 
                   <div className="absolute left-2 right-2 bottom-2">
                     {events.length > 0 && (
-                      <div className="text-sm font-semibold truncate">
+                      <div className={`text-sm font-semibold truncate`}>
                         {events.slice(0, 2).map((ev, idx) => {
                           const now = new Date();
                           const passed = ev.end < now;
                           const color = passed ? "text-red-600" : "text-emerald-700";
                           return (
                             <div key={ev.id || idx} className={`text-xs ${color} font-bold`}>
-                              {ev.exam?.label ?? ev.exam?.Matiere?.label ?? "Examen"} {ev.start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              {ev.exam?.label ?? ev.exam?.matiere?.label ?? "Examen"} {ev.start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </div>
                           );
                         })}
@@ -194,7 +281,7 @@ export default function DashboardEtudiant() {
         </div>
       </div>
 
-      {/* modal ET above calendar */}
+      {/* Schedule modal — same as DashboardEtudiant */}
       {selectedDay && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white border rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-auto">
@@ -255,35 +342,50 @@ export default function DashboardEtudiant() {
                                 </div>
                               );
                             }
-                            return <div key={h} className="border-b" />;
+                            return <div key={h} className="border-b border-gray-200/80" />;
                           })}
                         </div>
 
                         <div className="absolute inset-0 pointer-events-none">
-                          {evts.map((ev) => {
-                            const startHour = ev.start.getHours() + ev.start.getMinutes() / 60;
-                            const endHour = ev.end.getHours() + ev.end.getMinutes() / 60;
+                          {(() => {
+                            const evts = eventsByDay[selectedDay] ?? [];
+                            return evts.map((ev) => {
+                              const startHours = evts.map((e) => e.start.getHours() + e.start.getMinutes() / 60);
+                              const endHours = evts.map((e) => e.end.getHours() + e.end.getMinutes() / 60);
+                              const minEvent = Math.min(...startHours);
+                              const maxEvent = Math.max(...endHours);
+                              const dayStart = Math.max(0, Math.floor(Math.min(minEvent, 7)));
+                              const dayEnd = Math.min(24, Math.ceil(Math.max(maxEvent, 19)));
+                              const totalHours = Math.max(1, dayEnd - dayStart);
 
-                            const topPercent = ((startHour - dayStart) / totalHours) * 100;
-                            const heightPercent = ((endHour - startHour) / totalHours) * 100;
-                            const now = new Date();
-                            const passed = ev.end < now;
-                            const colorBg = passed ? "bg-red-100" : "bg-emerald-100";
-                            const colorText = passed ? "text-red-800" : "text-emerald-800";
+                              const startHour = ev.start.getHours() + ev.start.getMinutes() / 60;
+                              const endHour = ev.end.getHours() + ev.end.getMinutes() / 60;
 
-                            return (
-                              <div key={ev.id} className={`absolute left-2 right-2 rounded-md p-2 shadow pointer-events-auto transform hover:scale-[1.01] transition`}
-                                style={{ top: `${topPercent}%`, height: `${Math.max(2, heightPercent)}%` }}
-                                title={`${ev.exam?.label ?? ev.exam?.Matiere?.label ?? "Examen"} ${ev.start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}>
-                                <div className={`${colorBg} ${colorText} px-2 py-1 rounded-md font-semibold`}>
-                                  <div className="text-sm">{ev.exam?.label ?? ev.exam?.Matiere?.label ?? "Examen"}</div>
-                                  <div className="text-xs">
-                                    {ev.start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - {ev.end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              const topPercent = ((startHour - dayStart) / totalHours) * 100;
+                              const heightPercent = ((endHour - startHour) / totalHours) * 100;
+                              const now = new Date();
+                              const passed = ev.end < now;
+                              const colorBg = passed ? "bg-red-100" : "bg-emerald-100";
+                              const colorText = passed ? "text-red-800" : "text-emerald-800";
+
+                              return (
+                                <div
+                                  key={ev.id}
+                                  className={`absolute left-2 right-2 rounded-md p-2 shadow pointer-events-auto transform hover:scale-[1.01] transition`}
+                                  style={{
+                                    top: `${topPercent}%`,
+                                    height: `${Math.max(2, heightPercent)}%`,
+                                  }}
+                                  title={`${ev.exam?.label ?? ev.exam?.matiere?.label ?? "Examen"} ${ev.start.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`}
+                                >
+                                  <div className={`${colorBg} ${colorText} px-2 py-1 rounded-md font-semibold`}>
+                                    <div className="text-sm">{ev.exam?.label ?? ev.exam?.matiere?.label ?? "Examen"}</div>
+                                    <div className="text-xs">{ev.start.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} - {ev.end.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
                                   </div>
                                 </div>
-                              </div>
-                            );
-                          })}
+                              );
+                            });
+                          })()}
                         </div>
                       </div>
                     );
@@ -295,7 +397,40 @@ export default function DashboardEtudiant() {
         </div>
       )}
 
-      {loading && <div className="text-sm text-slate-500">Chargement de vos examens...</div>}
+      {/* Creation modal */}
+      <Modal 
+        open={creationModalOpen} 
+        onClose={() => setCreationModalOpen(false)} 
+        title={`Planifier un examen le ${dateToCreate ? dateToCreate.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}`}
+      >
+        <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+                Examen du : 
+                <strong className="ml-1 text-indigo-600">{dateToCreate?.toLocaleDateString('fr-FR')}</strong>.
+            </p>
+            <form className="space-y-4">
+                <input 
+                    type="text" 
+                    placeholder="Nom de l'examen/événement" 
+                    className="w-full border border-slate-300 px-4 py-2 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/40"
+                />
+                
+                <input 
+                    type="datetime-local" 
+                    value={dateToCreate?.toISOString().slice(0, 16) ?? ''}
+                    onChange={() => {}}
+                    className="w-full border border-slate-300 px-4 py-2 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/40"
+                />
+
+                <div className="flex justify-end gap-2 pt-2">
+                    <button type="button" onClick={() => setCreationModalOpen(false)} className="px-4 py-2 rounded bg-slate-100">Annuler</button>
+                    <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded">Créer l'événement</button>
+                </div>
+            </form>
+        </div>
+      </Modal>
+
+      {loading && <div className="text-sm text-slate-500">Chargement des calendriers...</div>}
     </div>
   );
 }

@@ -6,18 +6,21 @@ import {
     refreshToken,
     signupByEmail,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    changePassword
 } from "../controllers/authController.js";
 
 const authRouter = express.Router();
 
+// Routes publiques
 authRouter.post("/signup", signupByEmail);
 authRouter.post("/login", loginByEmail);
 authRouter.post("/refresh-token", refreshToken);
-authRouter.get("/profile", authenticate, getProfil);
-
-// Accès public - mot de passe oublié et réinitialisation
-authRouter.post("/forgot-password", forgotPassword); 
+authRouter.post("/forgot-password", forgotPassword);
 authRouter.post("/reset-password", resetPassword);
+
+// Routes protégées (authentifiées)
+authRouter.get("/profile", authenticate, getProfil);
+authRouter.post("/change-password", authenticate, changePassword);
 
 export default authRouter;

@@ -13,11 +13,11 @@ const Calendrier = sequelize.define("Calendrier", {
     },
     end_time: { 
         type: DataTypes.DATE, 
-        allowNull: false 
+        allowNull: false
     },
     examId: {
         type: DataTypes.UUID,
-        allowNull: false,
+        allowNull: false
     }
     ,
     // salleId: {

@@ -9,121 +9,6 @@ import Matiere from "../models/matiereModel.js";
 
 export class AffectationService {
 
-  // // Auto-affectation (ta version)
-  // static async autoAffecter(examId) {
-  //   const exam = await Exam.findByPk(examId);
-  //   if (!exam) throw new Error("Examen introuvable");
-
-  //   const matiere = await exam.getMatiere?.();
-  //   const niveau = matiere?.niveau;
-  //   const etudiants = await User.findAll({ where: { role: "etudiant", niveau } });
-  //   if (!etudiants.length) throw new Error("Aucun étudiant trouvé pour ce groupe");
-
-  //   const calendriers = await Calendrier.findAll({
-  //     where: { examId },
-  //     include: [{ model: Salle, include: [Place] }],
-  //   });
-
-  //   const salles = calendriers.map(c => c.Salle);
-  //   if (!salles.length) throw new Error("Aucune salle associée à cet examen");
-
-  //   const allPlaces = salles.flatMap(salle => salle.Places);
-  //   const usedPlaces = await Affectation.findAll({
-  //     where: { examId },
-  //     attributes: ["placeId"],
-  //   });
-  //   const usedPlaceIds = usedPlaces.map(a => a.placeId);
-  //   const freePlaces = allPlaces.filter(p => !usedPlaceIds.includes(p.id));
-
-  //   if (freePlaces.length < etudiants.length)
-  //     throw new Error("Pas assez de places pour tous les étudiants");
-
-  //   const shuffled = etudiants.sort(() => Math.random() - 0.5);
-
-  //   const affectations = shuffled.map((etu, i) => ({
-  //     etudiantId: etu.id,
-  //     examId,
-  //     placeId: freePlaces[i].id,
-  //   }));
-
-  //   await Affectation.bulkCreate(affectations);
-  //   return { count: affectations.length, affectations };
-  // }
-
-  //   // Auto-affectation améliorée : éloigner les étudiants du même niveau
-  // static async autoAffecter(examId) {
-  //   const exam = await Exam.findByPk(examId);
-  //   if (!exam) throw new Error("Examen introuvable");
-
-  //   const matiere = await exam.getMatiere?.();
-  //   const niveau = matiere?.niveau;
-
-  //   // Récupérer tous les étudiants concernés
-  //   const etudiants = await User.findAll({
-  //     where: { role: "etudiant", niveau },
-  //   });
-  //   if (!etudiants.length) throw new Error("Aucun étudiant trouvé pour ce groupe");
-
-  //   // Récupérer les salles et places disponibles
-  //   const calendriers = await Calendrier.findAll({
-  //     where: { examId },
-  //     include: [{ model: Salle, include: [Place] }],
-  //   });
-
-  //   const salles = calendriers.map(c => c.Salle);
-  //   if (!salles.length) throw new Error("Aucune salle associée à cet examen");
-
-  //   const allPlaces = salles.flatMap(salle => salle.Places);
-  //   const usedPlaces = await Affectation.findAll({
-  //     where: { examId },
-  //     attributes: ["placeId"],
-  //   });
-  //   const usedPlaceIds = usedPlaces.map(a => a.placeId);
-  //   const freePlaces = allPlaces.filter(p => !usedPlaceIds.includes(p.id));
-
-  //   if (freePlaces.length < etudiants.length)
-  //     throw new Error("Pas assez de places pour tous les étudiants");
-
-  //   // --- Nouvelle logique : espacer les étudiants du même niveau ---
-  //   // 1. Grouper les étudiants par niveau
-  //   const groupes = etudiants.reduce((acc, etu) => {
-  //     if (!acc[etu.niveau]) acc[etu.niveau] = [];
-  //     acc[etu.niveau].push(etu);
-  //     return acc;
-  //   }, {});
-
-  //   // 2. Trier les groupes par taille décroissante
-  //   const groupesTries = Object.values(groupes).sort((a, b) => b.length - a.length);
-
-  //   // 3. Mélanger chaque groupe individuellement
-  //   groupesTries.forEach(groupe => groupe.sort(() => Math.random() - 0.5));
-
-  //   // 4. Distribuer les étudiants en alternance
-  //   const distributed = [];
-  //   let index = 0;
-  //   let stillStudents = true;
-  //   while (stillStudents) {
-  //     stillStudents = false;
-  //     for (const groupe of groupesTries) {
-  //       if (groupe[index]) {
-  //         distributed.push(groupe[index]);
-  //         stillStudents = true;
-  //       }
-  //     }
-  //     index++;
-  //   }
-
-  //   // 5. Associer les places selon cet ordre mélangé
-  //   const affectations = distributed.map((etu, i) => ({
-  //     etudiantId: etu.id,
-  //     examId,
-  //     placeId: freePlaces[i].id,
-  //   }));
-
-  //   await Affectation.bulkCreate(affectations);
-  //   return { count: affectations.length, affectations };
-  // }
-
     // Auto-affectation avancée : répartition équilibrée par salle et éloignement par niveau
   static async autoAffecter(examId) {
     const exam = await Exam.findByPk(examId);
@@ -178,7 +63,7 @@ export class AffectationService {
     // 2️⃣ Mélanger chaque groupe pour casser les ordres fixes
     Object.values(groupes).forEach(g => g.sort(() => Math.random() - 0.5));
 
-    // 3️⃣ Mélanger l’ordre des salles
+    // 3️⃣ Mélanger l'ordre des salles
     const shuffledSalles = salles.sort(() => Math.random() - 0.5);
 
     // 4️⃣ Répartir équitablement les étudiants de chaque niveau dans les salles
@@ -243,6 +128,9 @@ export class AffectationService {
   }
 
 
+//-----------------------------------------------------------------------------------//
+
+
   // Lire toutes les affectations (avec infos liées)
   static async getAffectations() {
     return Affectation.findAll({
@@ -263,6 +151,10 @@ export class AffectationService {
     });
   }
 
+
+//-----------------------------------------------------------------------------------//
+
+
   // Affectations d'un examen
   static async getAffectationsByExam(examId) {
     return Affectation.findAll({
@@ -281,7 +173,9 @@ export class AffectationService {
     });
   }
 
-  // Affectations d’un étudiant
+  //-----------------------------------------------------------------------------------//
+
+  // Affectations d'un étudiant
   static async getAffectationsByEtudiant(etudiantId) {
     return Affectation.findAll({
       where: { etudiantId },
@@ -291,6 +185,8 @@ export class AffectationService {
       ],
     });
   }
+
+  //-----------------------------------------------------------------------------------//
 
   // Vérifier si une salle est dispo sur une période donnée
   static async verifierDisponibiliteSalle(salleId, dateDebut, dateFin) {
@@ -314,28 +210,14 @@ export class AffectationService {
     return conflits.length === 0; // true si libre
   }
 
-  // Annuler une affectation (au lieu de supprimer)
-//   static async annulerAffectation(affectationId) {
-//     const affectation = await Affectation.findByPk(affectationId);
-//     if (!affectation) throw new Error("Affectation introuvable");
+  //-----------------------------------------------------------------------------------//
 
-//     affectation.annulee = true;
-//     await affectation.save();
-
-//     return { message: "Affectation annulée avec succès" };
-//   }
-
-  // Nouvelle méthode : occupation par salle
+  /**
+   * Récupère l'occupation des places d'une salle pour une journée donnée.
+   * 
+   */
   static async getOccupancyBySalle(salleId, date) {
-    // date expected 'YYYY-MM-DD' or ISO string (we consider whole day)
     if (!salleId) throw new Error("salleId requis");
-
-    // construire intervalle début/fin de journée
-    const day = date ? new Date(date) : new Date();
-    const start = new Date(day);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(day);
-    end.setHours(23, 59, 59, 999);
 
     // récupérer toutes les places de la salle
     const places = await Place.findAll({
@@ -344,41 +226,54 @@ export class AffectationService {
       attributes: ["id", "numero"],
     });
 
-    // récupérer toutes les affectations pour cette salle et cette journée
+    if (places.length === 0) {
+      return { salleId, date: new Date().toISOString(), places: [] };
+    }
+
+    // récupérer toutes les affectations pour ces places à la date donnée
     const affectations = await Affectation.findAll({
       include: [
         {
           model: Place,
+          required: true,
           where: { salleId },
           attributes: ["id", "numero"],
         },
         {
           model: Exam,
-          where: { date: { [Op.between]: [start, end] } },
+          required: false,
           attributes: ["id", "date", "duree"],
-          include: [{ model: Matiere, attributes: ["label"] }],
+          include: [
+            { model: Matiere, required: false, attributes: ["label"] }
+          ],
         },
         {
           model: User,
           as: "etudiant",
+          required: false, // ✅ LEFT JOIN
           attributes: ["id", "fullname", "email", "niveau"],
         }
       ],
     });
 
-    // build map placeId -> affectation (if multiple exams same day, pick one or return array)
+    console.log(`✅ getOccupancyBySalle: trouvé ${affectations.length} affectations pour salleId=${salleId}`);
+
+    // construire une map placeId -> affectation info
     const map = {}; // placeId -> { affectation info }
     for (const a of affectations) {
       const p = a.Place;
       if (!p) continue;
+
       map[p.id] = {
-        etudiant: a.etudiant ? a.etudiant.get?.() ?? a.etudiant : a.etudiant,
-        exam: a.Exam ? a.Exam.get?.() ?? a.Exam : a.Exam,
+        etudiant: a.etudiant ? (a.etudiant.get?.() ?? a.etudiant) : null,
+        exam: a.Exam ? (a.Exam.get?.() ?? a.Exam) : null,
         affectationId: a.id,
       };
     }
 
-    // return places with status
+    console.log(`✅ Occupancy map keys: ${Object.keys(map).length} places occupées`);
+
+    // construire le résultat final avec le statut d'occupation
     const result = places.map((p) => ({
       id: p.id,
       numero: p.numero,
@@ -388,6 +283,6 @@ export class AffectationService {
       affectationId: map[p.id]?.affectationId ?? null,
     }));
 
-    return { salleId, date: start.toISOString(), places: result };
+    return { salleId, date: new Date().toISOString(), places: result };
   }
 }

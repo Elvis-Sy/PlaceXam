@@ -15,7 +15,6 @@ export const assignerPlusieurs = async (req, res) => {
     try {
         const { examId } = req.params;
         const { surveillantIds } = req.body; // tableau d’UUIDs
-        
         const result = await SupervisionService.assignerPlusieursSurveillants(examId, surveillantIds);
         res.status(201).json(result);
     } catch (error) {
