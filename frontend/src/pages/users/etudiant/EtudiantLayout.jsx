@@ -23,7 +23,9 @@ export default function EtudiantLayout() {
   return (
     <div>
       <MyAppBar menuItems={menuItems} accountMenuItems={accountMenuItems} />
-      <div style={{ padding: '16px' }}>
+      <div style={{ padding: '16px', minHeight: 'calc(100vh - 64px)',
+
+       }}>
         <Outlet />
       </div>
     </div>

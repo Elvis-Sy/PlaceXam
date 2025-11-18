@@ -1,132 +1,186 @@
-import { Op } from "sequelize";
 import Supervision from "../models/supervisionModel.js";
-import User from "../models/userModel.js";
 import Exam from "../models/examModel.js";
-import Calendrier from "../models/calendrierModel.js";
+import User from "../models/userModel.js";
+import Salle from "../models/salleModel.js";
+import Matiere from "../models/matiereModel.js";
 
 export class SupervisionService {
-  
-  // Créer une supervision unique
-  static async createSupervision({ examId, surveillantId }) {
-    const surveillant = await User.findByPk(surveillantId);
-    if (!surveillant || surveillant.role !== "surveillant") {
-      throw new Error("Surveillant invalide ou inexistant");
-    }
+  /**
+   * Créer une supervision (sans vérifier le calendrier)
+   */
+  static async createSupervision(data) {
+    const { examId, surveillantId, salleId } = data;
 
-    const exam = await Exam.findByPk(examId);
-    if (!exam) throw new Error("Examen introuvable");
-
-    const isConflict = await getConflict(examId, surveillantId);
-
-    if (isConflict) {
-      throw new Error(
-        "Ce surveillant est déjà affecté à un autre examen à cette date et heure."
-      );
-    }
-
-    return await Supervision.create({ examId, surveillantId });
-  }
-
-  // Créer plusieurs supervisions d’un coup
-  static async assignerPlusieursSurveillants(examId, surveillantIds = []) {
-    const exam = await Exam.findByPk(examId);
-    if (!exam) throw new Error("Examen introuvable");
-
-    // Filtrer uniquement les surveillants valides
-    const surveillants = await User.findAll({
-      where: { id: surveillantIds, role: "surveillant" },
-    });
-
-    if (!surveillants.length) throw new Error("Aucun surveillant valide trouvé");
-
-    // Vérifier s’ils ne sont pas déjà affectés à cet examen
-    const existants = await Supervision.findAll({
-      where: { examId },
-      attributes: ["surveillantId"],
-    });
-
-    const existantsIds = existants.map(s => s.surveillantId);
-    const nouveaux = surveillants
-      .filter(s => !existantsIds.includes(s.id))
-      .map(s => ({ examId, surveillantId: s.id }));
-
-    if (!nouveaux.length) throw new Error("Tous les surveillants sont déjà affectés");
-
-    const chevauchement = [];
-    const results = [];
-
-    for (const s of surveillants) {
-      if (existantsIds.includes(s.id)) continue;
-
-      const conflict = await getConflict(examId, s.id);
-      if (conflict) {
-        chevauchement.push({
-          surveillantId: s.id,
-          fullname: s.fullname,
-          status: "conflit d'horaire",
-        });
-        continue;
+    // Vérifier que le surveillant existe
+    if (surveillantId) {
+      const surveillant = await User.findByPk(surveillantId);
+      if (!surveillant || surveillant.role !== "surveillant") {
+        throw new Error("Surveillant introuvable ou invalide");
       }
-
-      results.push({ examId, surveillantId: s.id });
     }
 
-    if (results.length > 0) {
-      await Supervision.bulkCreate(results);
+    // Vérifier que l'examen existe (optionnel)
+    if (examId) {
+      const exam = await Exam.findByPk(examId);
+      if (!exam) {
+        throw new Error("Examen introuvable");
+      }
     }
 
-    const conflitMessage =
-      chevauchement.length > 0
-        ? `${chevauchement.length} surveillant(s) non assigné(s) (déjà pris ou conflit d'horaire)`
-        : "";
+    // Vérifier que la salle existe (optionnel)
+    if (salleId) {
+      const salle = await Salle.findByPk(salleId);
+      if (!salle) {
+        throw new Error("Salle introuvable");
+      }
+    }
 
-    return {
-      message: `${results.length} surveillant(s) assigné(s) à l’examen`,
-      conflitMessage,
-      chevauchement,
-    };
-  }
-
-  // Lire toutes les supervisions
-  static async getAllSupervisions() {
-    return await Supervision.findAll({
-      include: [
-        { model: User, as: "surveillant", attributes: ["id", "fullname", "email"] },
-        { model: Exam, attributes: ["id", "date", "duree"] },
-      ],
+    // Créer la supervision
+    const supervision = await Supervision.create({
+      examId: examId || null,
+      surveillantId: surveillantId || null,
+      salleId: salleId || null,
     });
+
+    return supervision;
   }
 
-  // Lire les supervisions d’un examen spécifique
+  /**
+   * Assigner plusieurs surveillants à un examen
+   */
+  static async assignerPlusieursSurveillants(examId, surveillantIds) {
+    if (!examId) throw new Error("examId requis");
+    if (!Array.isArray(surveillantIds)) throw new Error("surveillantIds doit être un tableau");
+
+    // Vérifier que l'examen existe
+    const exam = await Exam.findByPk(examId);
+    if (!exam) throw new Error("Examen introuvable");
+
+    // Vérifier que tous les surveillants existent
+    for (const id of surveillantIds) {
+      const surveillant = await User.findByPk(id);
+      if (!surveillant || surveillant.role !== "surveillant") {
+        throw new Error(`Surveillant ${id} introuvable ou invalide`);
+      }
+    }
+
+    // Créer les supervisions
+    const supervisions = await Promise.all(
+      surveillantIds.map((surveillantId) =>
+        Supervision.create({
+          examId,
+          surveillantId,
+          salleId: null,
+        })
+      )
+    );
+
+    return { count: supervisions.length, supervisions };
+  }
+
+  /**
+   * Récupérer toutes les supervisions avec détails
+   */
+  static async getAllSupervisions() {
+    try {
+      return await Supervision.findAll({
+        include: [
+          {
+            model: Exam,
+            attributes: ["id", "date", "duree"],
+            include: [{ model: Matiere, attributes: ["label", "niveau"] }],
+          },
+          {
+            model: User,
+            as: "surveillant",
+            attributes: ["id", "fullname", "email"],
+          },
+          {
+            model: Salle,
+            as: "salle",
+            attributes: ["id", "label", "capacite"],
+          },
+        ],
+        order: [["createdAt", "DESC"]],
+      });
+    } catch (err) {
+      console.error("SupervisionService.getAllSupervisions error:", err);
+      throw err;
+    }
+  }
+
+  /**
+   * Récupérer supervisions par examen
+   */
   static async getByExam(examId) {
-    return await Supervision.findAll({
+    return Supervision.findAll({
       where: { examId },
       include: [
-        { model: User, as: "surveillant", attributes: ["id", "fullname", "email"] },
+        {
+          model: User,
+          as: "surveillant",
+          attributes: ["id", "fullname", "email"],
+        },
+        {
+          model: Salle,
+          attributes: ["id", "label"],
+        },
       ],
     });
   }
 
-  // Lire les supervisions d’un surveillant spécifique
+  /**
+   * Récupérer supervisions par surveillant
+   */
   static async getBySurveillant(surveillantId) {
-    return await Supervision.findAll({
+    return Supervision.findAll({
       where: { surveillantId },
       include: [
-        { model: Exam, attributes: ["id", "date", "duree"] },
+        {
+          model: Exam,
+          attributes: ["id", "date", "duree"],
+          include: [{ model: Matiere, attributes: ["label"] }],
+        },
+        {
+          model: Salle,
+          attributes: ["id", "label"],
+        },
       ],
     });
   }
 
-  // Modifier une supervision
+  /**
+   * Mettre à jour une supervision
+   */
   static async updateSupervision(id, data) {
     const supervision = await Supervision.findByPk(id);
     if (!supervision) throw new Error("Supervision introuvable");
+
+    // Vérifier les mises à jour
+    if (data.surveillantId) {
+      const surveillant = await User.findByPk(data.surveillantId);
+      if (!surveillant || surveillant.role !== "surveillant") {
+        throw new Error("Surveillant invalide");
+      }
+    }
+
+    if (data.examId) {
+      const exam = await Exam.findByPk(data.examId);
+      if (!exam) throw new Error("Examen introuvable");
+    }
+
+    if (data.salleId) {
+      const salle = await Salle.findByPk(data.salleId);
+      if (!salle) throw new Error("Salle introuvable");
+    }
 
     await supervision.update(data);
     return supervision;
   }
 
-  // Supprimer une supervision
+  /**
+   * Supprimer une supervision
+   */
   static async deleteSupervision(id) {
     const supervision = await Supervision.findByPk(id);
     if (!supervision) throw new Error("Supervision introuvable");
@@ -134,30 +188,4 @@ export class SupervisionService {
     await supervision.destroy();
     return { message: "Supervision supprimée avec succès" };
   }
-}
-
-
-/*====================Verification du chevauchement des examens superviser=====================*/
-const getConflict = async (examId, surveillantId) => {
-
-  const calendrierTarget = await Calendrier.findOne({ where: { examId } });
-  if (!calendrierTarget) throw new Error("Calendrier non trouvé pour cet examen");
-
-  const { start_time, end_time } = calendrierTarget;
-  const supervisions = await Supervision.findAll({ where: { surveillantId } });
-
-  for (const s of supervisions) {
-    const calendrier = await Calendrier.findOne({ where: { examId: s.examId } });
-    if (!calendrier) continue;
-
-    // Vérifier chevauchement
-    if (
-      start_time < calendrier.end_time &&
-      end_time > calendrier.start_time
-    ) {
-      return true;
-    }
-  }
-
-  return false;
 }
