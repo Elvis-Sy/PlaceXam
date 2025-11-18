@@ -95,7 +95,7 @@ export default function Profile() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: "bold" }}>
+      <Typography className="flex items-center" variant="h4" sx={{mb: 4,  fontWeight: "bold" }}>
         Mon Profil <Typography
                   variant="body1"
                   sx={{

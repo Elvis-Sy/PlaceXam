@@ -143,7 +143,8 @@ export class SupervisionService {
         },
         {
           model: Salle,
-          attributes: ["id", "label"],
+          as: "salle",
+          attributes: ["id", "label", "capacite"],
         },
       ],
     });

@@ -19,7 +19,7 @@ function AuthGuard() {
   if (user) {
     const mapping = {
       admin: "/admin/dashboard",
-      surveillant: "/surveillant",
+      surveillant: "/surveillant/dashboard",
       etudiant: "/etudiant",
     };
     const target = mapping[user.role] || "/";
