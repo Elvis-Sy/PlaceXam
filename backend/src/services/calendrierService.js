@@ -161,4 +161,68 @@ export class CalendrierService {
         combined.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
         return combined;
     }
+
+    /**
+   * Récupérer tous les calendriers filtrés par niveau (matière.niveau)
+   */
+  static async getCalendriersByNiveau(niveau) {
+    if (!niveau) return await this.getAllCalendriers();
+    // reuse the method that returns persisted + virtual entries
+    const all = await this.getAllCalendriers();
+    return all.filter((c) => {
+      const exam = c.Exam ?? c.exam ?? null;
+      const matiere = exam?.Matiere ?? exam?.matiere ?? null;
+      const examNiveau = matiere?.niveau ?? null;
+      return examNiveau === niveau;
+    });
+  }
+
+  static async getCalendriersForExamIds(examIds = []) {
+    if (!Array.isArray(examIds) || examIds.length === 0) return [];
+
+    // 1) Persisted calendars filtered by examId
+    const persistedInstances = await Calendrier.findAll({
+      where: { examId: { [Op.in]: examIds } },
+      include: [{ model: Exam, include: [{ model: Matiere }] }],
+      order: [["start_time", "ASC"]],
+    });
+    const persisted = persistedInstances.map((p) => p.toJSON());
+
+    // 2) Fetch the exams we are interested in
+    const exams = await Exam.findAll({
+      include: [{ model: Matiere }],
+      where: { id: { [Op.in]: examIds } },
+    });
+
+    // 3) Build set of examIds that already have a calendrier
+    const withCal = new Set(persisted.map((c) => c.examId ?? c.Exam?.id));
+
+    // 4) Synthesize virtual entries for exams without persisted calendrier
+    const virtual = exams
+      .filter((ex) => !withCal.has(ex.id) && ex.date)
+      .map((ex) => {
+        let start = new Date(ex.date);
+        if (ex.time && typeof ex.time === "string") {
+          const [hhRaw, mmRaw] = ex.time.split(":");
+          const hh = Number(hhRaw);
+          const mm = Number(mmRaw ?? 0);
+          if (!Number.isNaN(hh)) start.setHours(hh, Number.isNaN(mm) ? 0 : mm, 0, 0);
+        }
+        const dureeMs = (Number(ex.duree) || 60) * 60 * 1000;
+        const end = new Date(start.getTime() + dureeMs);
+
+        return {
+          id: `virtual-exam-${ex.id}`,
+          start_time: start.toISOString(),
+          end_time: end.toISOString(),
+          examId: ex.id,
+          Exam: ex,
+          virtual: true,
+        };
+      });
+
+    const combined = [...persisted, ...virtual];
+    combined.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+    return combined;
+  }
 }

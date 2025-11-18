@@ -69,3 +69,13 @@ export const deleteCalendrier = async (req, res) => {
     res.status(404).json({ message: err.message });
   }
 };
+
+export const getCalendrierByNiveau = async (req, res) => {
+  try {
+    const { niveau } = req.params;
+    const result = await CalendrierService.getCalendriersByNiveau(niveau);
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

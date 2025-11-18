@@ -1,4 +1,3 @@
-// controllers/supervisionController.js
 import { SupervisionService } from "../services/supervisionService.js";
 
 

@@ -193,8 +193,11 @@ export default function Calendriers() {
     evts.forEach((evt) => {
       const startHour = evt.start.getHours();
       const endHour = evt.end.getHours();
+      const endMinutes = evt.end.getMinutes();
 
-      for (let h = startHour; h < endHour; h++) {
+      const finalHour = endMinutes > 0 ? endHour : endHour - 1;
+
+      for (let h = startHour; h <= finalHour; h++) {
         if (!hourMap[h]) hourMap[h] = [];
         hourMap[h].push(evt);
       }
@@ -275,11 +278,15 @@ export default function Calendriers() {
                   }
                 >
                   <div className="flex justify-between items-start">
-                    
                     <div className="text-sm font-medium">{date ? date.getDate() : ""}</div>
+                    
+                    
+                    {events.length > 0 && (
+                      <div className="inline-flex items-center justify-center bg-indigo-600 text-white text-xs font-bold px-2 py-0.5 rounded-full h-5 min-w-5 flex-shrink-0">
+                        {events.length}
+                      </div>
+                    )}
                   </div>
-
-                  
                 </div>
               );
             })

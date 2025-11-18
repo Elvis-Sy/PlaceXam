@@ -8,6 +8,7 @@ import salleRouter from "./routes/salleRoute.js";
 import affectationRouter from "./routes/affectationRoute.js";
 import supervisionRouter from "./routes/supervisionRoute.js";
 import dashboardRouter from "./routes/dashboardRoute.js";
+import surveillantSideRouter from "./routes/surveillantSideRoute.js";
 const api = express.Router();
 
 api.use("/auth", authRouter);
@@ -19,5 +20,6 @@ api.use("/salles", salleRouter);
 api.use("/affectations", affectationRouter);
 api.use("/supervisions", supervisionRouter);
 api.use("/dashboard", dashboardRouter);
+api.use("/me", surveillantSideRouter)
 
 export default api;

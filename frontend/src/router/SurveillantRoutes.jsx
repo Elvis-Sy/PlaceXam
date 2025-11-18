@@ -1,10 +1,11 @@
 import { Route } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoutes";
 import RoleRoute from "./RoleRoutes";
-import CalendarsSurveillant from "../pages/users/surveillant/Calendriers";
+import Profile from "../pages/users/admin/Profile";
 import SurveillantLayout from "../pages/users/surveillant/SurveillantLayout";
-import StudentsSurveillant from "../pages/users/surveillant/Etudiants";
 import DashboardSurveillant from "../pages/users/surveillant/DashBoardSurveillant";
+import CalendrierSurveillant from "../pages/users/surveillant/CalendrierSurveillant";
+import SalleSurveillant from "../pages/users/surveillant/SalleSurveillant"
 
 export default (
   <Route element={<ProtectedRoute />}>
@@ -18,8 +19,9 @@ export default (
     >
       <Route index element={<DashboardSurveillant />} />
       <Route path="dashboard" element={<DashboardSurveillant />} />
-      <Route path="calendrier" element={<CalendarsSurveillant />} />
-      <Route path="etudiants" element={<StudentsSurveillant />} />
+      <Route path="profile" element={<Profile />} />
+      <Route path="calendriers" element={<CalendrierSurveillant />} />
+      <Route path="salles" element={<SalleSurveillant />} />
     </Route>
   </Route>
 );
