@@ -8,6 +8,7 @@ import {
   // optional: searchUsers
 } from "../../../services/users";
 import { Plus, Download, Upload, Search, Trash2, Edit, X } from "lucide-react";
+import DataTable from "../../../components/ui/DataTable";
 
 /**
  * Admin Users CRUD page
@@ -116,6 +117,76 @@ export default function Users({userRole}) {
         .includes(q)
     );
   }, [users, query]);
+
+  const columns = useMemo(() => {
+    const base = [
+      { field: "index", headerName: "#", width: 60 },
+      {
+        field: "fullname",
+        headerName: "Nom",
+        width: 320,
+        renderCell: (r) => (
+          <div>
+            <div className="font-medium">{r.fullname ?? r.full_name ?? "-"}</div>
+            <div className="text-xs text-slate-400">{r.createdAt ? new Date(r.createdAt).toLocaleString().split(" ")[0] : ""}</div>
+          </div>
+        ),
+      },
+      {
+        field: "email",
+        headerName: "Email",
+        width: 260,
+        renderCell: (r) => <div className="text-sm text-slate-600">{r.email}</div>,
+      },
+      {
+        field: "role",
+        headerName: "Rôle",
+        width: 120,
+        renderCell: (r) => (
+          <span className={
+            "inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold " +
+            (r.role === "admin" ? "bg-amber-100 text-amber-800" : r.role === "surveillant" ? "bg-blue-100 text-blue-800" : "bg-slate-100 text-slate-700")
+          }>{r.role}</span>
+        ),
+      },
+    ];
+
+    if (userRole === "etudiant") {
+      base.splice(2, 0, { // insert niveau before email
+        field: "niveau",
+        headerName: "Niveau",
+        width: 110,
+        renderCell: (r) => <div className="font-semibold text-sm text-slate-600">{r.niveau ?? ""}</div>,
+      });
+    }
+
+    base.push({
+      field: "actions",
+      headerName: "Actions",
+      align: "right",
+      width: 120,
+      renderCell: (r) => (
+        <div className="inline-flex items-center gap-2">
+          <button onClick={(e) => { e.stopPropagation(); openEdit(r); }} className="p-2 rounded-md hover:bg-slate-100 transition" title="Editer">
+            <Edit size={16} />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); setDeleteOpen(true); }} className="p-2 rounded-md hover:bg-red-50 text-red-600 transition" title="Supprimer" disabled={deletingId === (r.id ?? r.userId ?? r._id)}>
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ),
+    });
+
+    return base;
+  }, [userRole, openEdit, deletingId]);
+  
+  const rowsForTable = useMemo(() => {
+    return filtered.map((u, i) => ({
+      id: u.id ?? u.userId ?? u._id ?? `user_${i}`,
+      index: i + 1,
+      ...u,
+    }));
+  }, [filtered]);
 
   // Create / Edit handlers
   function openCreate() {
@@ -266,80 +337,18 @@ export default function Users({userRole}) {
       )}
 
       {/* Table */}
-      <div className="bg-white border border-gray-500/80 rounded-lg shadow-sm overflow-hidden">
-        <table className="min-w-full divide-y">
-          <thead className="bg-slate-50 border-b border-gray-500/80">
-            <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">#</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">Nom</th>
-              {userRole == "etudiant" && <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">Niveau</th>}
-              <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">Email</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">Rôle</th>
-              <th className="px-4 py-3 text-right text-sm font-medium text-slate-500">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200/80">
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="p-8 text-center text-slate-400">
-                  Chargement...
-                </td>
-              </tr>
-            ) : filtered.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="p-8 text-center text-slate-400">
-                  Aucun utilisateur trouvé
-                </td>
-              </tr>
-            ) : (
-              filtered.map((u, i) => (
-                <tr
-                  key={u.id ?? u.userId ?? u._id ?? i}
-                  className="hover:bg-slate-50 transition-colors"
-                  title={`Utilisateur ${u.fullname ?? u.email}`}
-                >
-                  <td className="px-4 py-3 text-sm text-slate-600">{i + 1}</td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{u.fullname ?? u.full_name ?? "-"}</div>
-                    <div className="text-xs text-slate-400">{u.createdAt ? new Date(u.createdAt).toLocaleString().split(" ")[0] : ""}</div>
-                  </td>
-                  {userRole == "etudiant" && <td className="px-4 py-3 font-semibold text-sm text-slate-600">{u.niveau}</td>}
-                  <td className="px-4 py-3 text-sm text-slate-600">{u.email}</td>
-                  <td className="px-4 py-3 text-sm">
-                    <span className={
-                      "inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold " +
-                      (u.role === "admin" ? "bg-amber-100 text-amber-800" : u.role === "surveillant" ? "bg-blue-100 text-blue-800" : "bg-slate-100 text-slate-700")
-                    }>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right text-sm">
-                    <div className="inline-flex items-center gap-2">
-                      <button
-                        onClick={() => openEdit(u)}
-                        className="p-2 rounded-md hover:bg-slate-100 transition"
-                        title="Editer"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setDeleteTarget(u);
-                          setDeleteOpen(true);}}
-                        className="p-2 rounded-md hover:bg-red-50 text-red-600 transition"
-                        title="Supprimer"
-                        disabled={deletingId === (u.id ?? u.userId ?? u._id)}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {loading ? (
+          <div className="p-8 text-center">Chargement...</div>
+        ) : (
+          <DataTable
+            columns={columns}
+            rows={rowsForTable}
+            initialPageSize={10}
+            rowsPerPageOptions={[5, 10, 25]}
+            dense={false}
+            onRowClick={(row) => openEdit(row)}
+          />
+      )}
 
       {/* Modal create / edit */}
       <Modal

@@ -7,6 +7,7 @@ import {
 } from "../../../services/affectations";
 import { getAllExams } from "../../../services/exams";
 import { Zap, Search, Eye, Calendar, AlertCircle } from "lucide-react";
+import DataTable from "../../../components/ui/DataTable";
 
 function IconButton({ children, className = "", ...props }) {
   return (
@@ -105,19 +106,92 @@ export default function Affectations() {
     if (query.trim()) {
       const q = query.toLowerCase();
       result = result.filter((a) => {
-        const student = a.etudiant?.fullname ?? "";
-        const place = a.Place?.numero ?? "";
-        const salle = a.Place?.Salle?.label ?? "";
+        const student = String(a.etudiant?.fullname ?? "").toLowerCase();
+        const place = String(a.Place?.numero ?? "").toLowerCase();
+        const salle = String(a.Place?.Salle?.label ?? "").toLowerCase();
         return (
-          student.toLowerCase().includes(q) ||
-          place.toLowerCase().includes(q) ||
-          salle.toLowerCase().includes(q)
+          student.includes(q) ||
+          place.includes(q) ||
+          salle.includes(q)
         );
       });
     }
 
     return result;
   }, [affectations, query, selectedExamId]);
+
+  const columns = useMemo(() => [
+    { field: "index", headerName: "#", width: 60 },
+    {
+      field: "student",
+      headerName: "Étudiant",
+      width: 300,
+      renderCell: (r) => (
+        <div>
+          <div className="font-medium">{r.etudiant?.fullname ?? "-"}</div>
+          <div className="text-xs text-slate-400">{r.etudiant?.email ?? ""}</div>
+        </div>
+      ),
+    },
+    {
+      field: "niveau",
+      headerName: "Niveau",
+      width: 110,
+      renderCell: (r) => (
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+          {r.etudiant?.niveau ?? "-"}
+        </span>
+      ),
+    },
+    {
+      field: "salle",
+      headerName: "Salle",
+      width: 160,
+      renderCell: (r) => r.Place?.Salle?.label ?? "-",
+    },
+    {
+      field: "place",
+      headerName: "Place",
+      width: 110,
+      renderCell: (r) => (
+        <span className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold">
+          Place {r.Place?.numero ?? "-"}
+        </span>
+      ),
+    },
+    {
+      field: "exam",
+      headerName: "Examen",
+      width: 260,
+      renderCell: (r) => (
+        <>
+          {r.Exam?.Matiere?.label ?? "-"}{" "}
+          <span className="text-xs text-slate-500">({new Date(r.Exam?.date).toLocaleDateString("fr-FR")})</span>
+        </>
+      ),
+    },
+    {
+      field: "actions",
+      headerName: "Actions",
+      align: "right",
+      renderCell: (r) => (
+        <div className="inline-flex gap-2">
+          <button
+            className="p-2 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+            onClick={(e) => {
+              e.stopPropagation();
+              openOccupancyModal(r.Place?.Salle?.id);
+            }}
+            title="Voir l'occupation de la salle"
+          >
+            <Eye size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ], [openOccupancyModal]);
+
+  const rowsForTable = filtered.map((a, i) => ({ ...a, index: i + 1 }));
 
   async function handleAutoAssign(examId) {
     if (!examId) {
@@ -206,7 +280,8 @@ export default function Affectations() {
           <option value="">Sélectionner un examen</option>
           {exams.map((exam) => (
             <option key={exam.id} value={exam.id}>
-              Examen {exam.id} - {new Date(exam.date).toLocaleDateString("fr-FR")}
+              {exam?.Matiere?.label ?? "-"} - {exam?.Matiere?.niveau}{" "}
+              <span className="text-xs text-slate-500">({new Date(exam?.date).toLocaleDateString("fr-FR")})</span>
             </option>
           ))}
         </select>
@@ -223,76 +298,18 @@ export default function Affectations() {
       )}
 
       {/* Table */}
-      <div className="bg-white border border-gray-500/80 rounded-lg shadow-sm overflow-hidden">
-        <table className="min-w-full divide-y">
-          <thead className="bg-slate-50 border-b border-gray-500/80">
-            <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">#</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">Étudiant</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">Niveau</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">Salle</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">Place</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-slate-500">Examen</th>
-              <th className="px-4 py-3 text-right text-sm font-medium text-slate-500">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200/80">
-            {loading ? (
-              <tr>
-                <td colSpan={7} className="p-8 text-center text-slate-400">
-                  ⏳ Chargement...
-                </td>
-              </tr>
-            ) : filtered.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="p-8 text-center text-slate-400">
-                  {affectations.length === 0
-                    ? "Aucune affectation. Cliquez sur 'Affectation Auto' pour en créer."
-                    : "Aucune affectation correspondant aux critères."}
-                </td>
-              </tr>
-            ) : (
-              filtered.map((a, i) => (
-                <tr
-                  key={a.id}
-                  className="hover:bg-slate-50 transition-colors"
-                >
-                  <td className="px-4 py-3 text-sm text-slate-600">{i + 1}</td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{a.etudiant?.fullname ?? "-"}</div>
-                    <div className="text-xs text-slate-400">{a.etudiant?.email ?? ""}</div>
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                      {a.etudiant?.niveau ?? "-"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm font-medium">
-                    {a.Place?.Salle?.label ?? "-"}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold">
-                      Place {a.Place?.numero ?? "-"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-600">
-                    {a.Exam?.Matiere.label} ({new Date(a.Exam?.date).toLocaleDateString("fr-FR")})
-                  </td>
-                  <td className="px-4 py-3 text-right text-sm">
-                    <IconButton
-                      onClick={() => openOccupancyModal(a.Place?.Salle?.id)}
-                      className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
-                      title="Voir l'occupation de la salle"
-                    >
-                      <Eye size={16} />
-                    </IconButton>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {loading ? (
+          <div className="p-8 text-center">⏳ Chargement...</div>
+        ) : (
+          <DataTable
+            columns={columns}
+            rows={rowsForTable}
+            initialPageSize={10}
+            rowsPerPageOptions={[5, 10, 25]}
+            dense={false}
+            onRowClick={(row) => openOccupancyModal(row.Place?.Salle?.id)}
+          />
+      )}
 
       {/* Occupancy Modal */}
       <Modal

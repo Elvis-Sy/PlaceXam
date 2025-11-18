@@ -4,3 +4,4 @@ export const getAllSupervisions = () => axios.get("/supervisions").then((r) => r
 export const createSupervision = (payload) => axios.post("/supervisions", payload).then((r) => r.data || r);
 export const updateSupervision = (id, payload) => axios.patch(`/supervisions/${id}`, payload).then((r) => r.data || r);
 export const deleteSupervision = (id) => axios.delete(`/supervisions/${id}`).then((r) => r.data || r);
+export const autoAffectSupervision = () => axios.post("/dashboard/assign-supervisors").then((r) => r.data || r);

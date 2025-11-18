@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { Plus, Edit, Trash2, Download, Search } from "lucide-react";
 import { getAllExams, createExam, updateExam, deleteExam } from "../../../services/exams";
 import { getAllMatieres } from "../../../services/matieres";
+import DataTable from "../../../components/ui/DataTable";
 
 function IconButton({ children, className = "", ...props }) {
   return (
@@ -111,6 +112,31 @@ export default function Exams() {
     });
   }, [exams, query, matieres]);
 
+  const columns = useMemo(() => [
+    { field: "index", headerName: "#", width: 60 },
+    { field: "date", headerName: "Date et heure", width: 240, renderCell: (r) => new Date(r.date).toLocaleString() },
+    { field: "duree", headerName: "Durée (min)", width: 120 },
+    { field: "matiere", headerName: "Matière", width: 220, renderCell: (r) => getMatiereLabel(r) },
+    { field: "niveau", headerName: "Niveau", width: 120, renderCell: (r) => (r.Matiere?.niveau ?? r.matiere?.niveau ?? "") },
+    {
+      field: "actions",
+      headerName: "Actions",
+      align: "right",
+      renderCell: (row) => (
+        <div className="inline-flex gap-2">
+          <button className="p-2 rounded hover:bg-slate-100" onClick={(e)=>{ e.stopPropagation(); openEdit(row); }}>
+            <Edit size={16} />
+          </button>
+          <button className="p-2 rounded hover:bg-red-50 text-red-600" onClick={(e)=>{ e.stopPropagation(); setDeleteTarget(row); setDeleteOpen(true); }}>
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ], [openEdit, setDeleteTarget, setDeleteOpen, matieres, exams]);
+
+  const rowsForTable = filtered.map((x, i) => ({ ...x, index: i + 1 }));
+
   function openCreate() { setEditing({ date: new Date().toISOString().slice(0,10), duree: 90, matiereId: "" }); setModalOpen(true); }
   function openEdit(x) { setEditing({...x}); setModalOpen(true); }
 
@@ -177,42 +203,17 @@ export default function Exams() {
         </div>
       </div>
 
-      <div className="bg-white border border-gray-500/80 rounded-lg shadow-sm">
-        <table className="min-w-full">
-          <thead className="bg-slate-100 border-b border-gray-500/80">
-            <tr>
-              <th className="px-4 py-3 text-left">#</th>
-              <th className="px-4 py-3 text-left">Date et heure</th>
-              <th className="px-4 py-3 text-left">Durée (min)</th>
-              <th className="px-4 py-3 text-left">Matière</th>
-              <th className="px-4 py-3 text-left">Niveau</th>
-              <th className="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200/80">
-            {loading ? <tr><td colSpan={6} className="p-8 text-center">Chargement...</td></tr> :
-            filtered.length === 0 ? <tr><td colSpan={6} className="p-8 text-center">Aucun examen</td></tr> :
-            filtered.map((x,i)=>(
-              <tr key={x.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3">{i+1}</td>
-                <td className="px-4 py-3">{new Date(x.date).toLocaleString()}</td>
-                <td className="px-4 py-3">{x.duree}</td>
-                <td className="px-4 py-3">{getMatiereLabel(x)}</td>
-                <td className="px-4 py-3">{x.Matiere?.niveau ?? x.matiere?.niveau ?? ""}</td>
-                <td className="px-4 py-3 text-right">
-                  <div className="inline-flex gap-2">
-                    <button onClick={()=>openEdit(x)} className="p-2 rounded hover:bg-slate-100"><Edit size={16}/></button>
-                    <button onClick={() => {
-                        setDeleteTarget(x);
-                        setDeleteOpen(true);
-                    }} className="p-2 rounded hover:bg-red-50 text-red-600"><Trash2 size={16}/></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {loading ? (
+          <div className="p-8 text-center">Chargement...</div>
+        ) : (
+          <DataTable
+            columns={columns}
+            rows={rowsForTable}
+            initialPageSize={5}
+            rowsPerPageOptions={[5,10,25]}
+            dense={false}
+          />
+      )}
 
       <Modal open={modalOpen} onClose={()=>setModalOpen(false)} title={editing?.id ? "Modifier examen" : "Créer examen"}>
         {editing && (

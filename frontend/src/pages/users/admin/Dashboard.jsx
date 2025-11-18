@@ -15,7 +15,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import DataTable from "../../../components/UI/DataTable";
+import DataTable from "../../../components/ui/DataTable";
 import { CircularProgress } from "@mui/material";
 import { Zap } from "lucide-react";
 
@@ -271,20 +271,20 @@ export default function Dashboard() {
       <h1 className="text-2xl font-bold mb-4">Dashboard Admin</h1>
 
       {/* KPIs */}  
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white shadow rounded p-4">
+      <div className="flex flex-col flex-1 sm:flex-row gap-4 mb-6">
+        <div className="bg-white flex-1 shadow rounded p-4">
           <h2 className="text-lg font-semibold">Total Students</h2>
           <p className="text-2xl font-bold">{animatedStudents}</p>
         </div>
-        <div className="bg-white shadow rounded p-4">
+        <div className="bg-white flex-1 shadow rounded p-4">
           <h2 className="text-lg font-semibold">Total Supervisors</h2>
           <p className="text-2xl font-bold">{animatedSurveillants}</p>
         </div>
-        <div className="bg-white shadow rounded p-4">
+        <div className="bg-white flex-1 shadow rounded p-4">
           <h2 className="text-lg font-semibold">Total Exams</h2>
           <p className="text-2xl font-bold">{animatedExams}</p>
         </div>
-        <div className="bg-white shadow rounded p-4">
+        <div className="bg-white flex-1 shadow rounded p-4">
           <h2 className="text-lg font-semibold">Total Rooms</h2>
           <p className="text-2xl font-bold">{animatedRooms}</p>
         </div>

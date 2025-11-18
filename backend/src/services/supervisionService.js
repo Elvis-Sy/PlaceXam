@@ -3,6 +3,7 @@ import Supervision from "../models/supervisionModel.js";
 import User from "../models/userModel.js";
 import Exam from "../models/examModel.js";
 import Calendrier from "../models/calendrierModel.js";
+import Salle from "../models/salleModel.js";
 
 export class SupervisionService {
   
@@ -91,8 +92,8 @@ export class SupervisionService {
   static async getAllSupervisions() {
     return await Supervision.findAll({
       include: [
-        { model: User, as: "surveillant", attributes: ["id", "fullname", "email"] },
-        { model: Exam, attributes: ["id", "date", "duree"] },
+        { model: User, as: "surveillant", attributes: ["id", "fullname"] },
+        { model: Salle, as: "salle", attributes: ["label"] },
       ],
     });
   }

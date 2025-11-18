@@ -7,6 +7,7 @@ import {
   deleteSalle,
   getSalleOccupancy,
 } from "../../../services/salles";
+import DataTable from "../../../components/ui/DataTable";
 
 function IconButton({ children, className = "", ...props }) {
   return (
@@ -102,6 +103,32 @@ export default function Salles() {
     return salles.filter((s) => (s.label || "").toLowerCase().includes(q));
   }, [salles, query]);
 
+  const columns = useMemo(() => [
+    { field: "index", headerName: "#", width: 60 },
+    { field: "label", headerName: "Label", width: 220 },
+    { field: "capacite", headerName: "Capacité", width: 110 },
+    {
+      field: "actions",
+      headerName: "Actions",
+      align: "right",
+      renderCell: (row) => (
+        <div className="inline-flex gap-2">
+          <button className="p-2 rounded-lg hover:bg-slate-200 transition" onClick={(e)=>{ e.stopPropagation(); openEdit(row); }}>
+            <Edit size={16} />
+          </button>
+          <button className="p-2 rounded-lg hover:bg-red-200 text-red-600 transition" onClick={(e)=>{ e.stopPropagation(); setDeleteTarget(row); setDeleteOpen(true); }}>
+            <Trash2 size={16} />
+          </button>
+          <button className="px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-sm transition" onClick={(e)=>{ e.stopPropagation(); openPlan(row); }}>
+            Voir plan
+          </button>
+        </div>
+      ),
+    },
+  ], [openEdit, setDeleteTarget, setDeleteOpen, openPlan]);
+
+  const rowsForTable = filtered.map((s, i) => ({ ...s, index: i + 1 }));
+
   function openCreate() {
     setEditing({ label: "", capacite: 30 });
     setModalOpen(true);
@@ -196,46 +223,13 @@ export default function Salles() {
         </div>
       </div>
 
-
-      <div className="bg-white border border-gray-500/80 rounded-lg shadow-sm">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-100 border-b border-gray-500/80">
-            <tr>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">#</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">Label</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">Capacité</th>
-              <th className="px-4 py-3 text-right font-semibold text-slate-700">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y divide-gray-200/80">
-            {filtered.map((s, i) => (
-              <tr key={s.id} className="hover:bg-slate-50 transition">
-                <td className="px-4 py-3">{i + 1}</td>
-                <td className="px-4 py-3 font-medium">{s.label}</td>
-                <td className="px-4 py-3">{s.capacite}</td>
-                <td className="px-4 py-3 text-right">
-                  <div className="inline-flex gap-2">
-                    <button className="p-2 rounded-lg hover:bg-slate-200 transition">
-                      <Edit size={16} onClick={() => openEdit(s)} />
-                    </button>
-                    <button className="p-2 rounded-lg hover:bg-red-200 text-red-600 transition">
-                      <Trash2 size={16} onClick={() => {
-                        setDeleteTarget(s);
-                        setDeleteOpen(true);
-                      }} />
-                    </button>
-                    <button className="px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-sm transition"
-                      onClick={() => openPlan(s)}>
-                      Voir plan
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={columns}
+        rows={rowsForTable}
+        initialPageSize={5}
+        rowsPerPageOptions={[5, 10, 25]}
+        dense={false}
+      />
 
       {/* create / edit modal */}
       <Modal

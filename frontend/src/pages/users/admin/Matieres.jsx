@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Plus, Edit, Trash2, Download, Search } from "lucide-react";
 import { getAllMatieres, createMatiere, updateMatiere, deleteMatiere } from "../../../services/matieres";
+import DataTable from "../../../components/ui/DataTable";
 
 function IconButton({ children, className = "", ...props }) {
   return (
@@ -82,6 +83,29 @@ export default function Matieres() {
     return list.filter(m => (m.label || "").toLowerCase().includes(q) || (m.niveau||"").toLowerCase().includes(q));
   }, [list, query]);
 
+  const columns = useMemo(() => [
+    { field: "index", headerName: "#", width: 60 },
+    { field: "label", headerName: "Label", width: 220 },
+    { field: "niveau", headerName: "Niveau", width: 120 },
+    {
+      field: "actions",
+      headerName: "Actions",
+      align: "right",
+      renderCell: (row) => (
+        <div className="inline-flex gap-2">
+          <button className="p-2 rounded hover:bg-slate-100" onClick={(e) => { e.stopPropagation(); openEdit(row); }}>
+            <Edit size={16} />
+          </button>
+          <button className="p-2 rounded hover:bg-red-50 text-red-600" onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); setDeleteOpen(true); }}>
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ], [openEdit, setDeleteTarget, setDeleteOpen, list]);
+
+  const rowsForTable = filtered.map((m, i) => ({ ...m, index: i + 1 }));
+
   function openCreate() { setEditing({ label: "", niveau: "L1" }); setModalOpen(true); }
   function openEdit(m) { setEditing({...m}); setModalOpen(true); }
 
@@ -150,38 +174,18 @@ export default function Matieres() {
         </div>
       </div>
 
-      <div className="bg-white border border-gray-500/80 rounded-lg shadow-sm">
-        <table className="min-w-full">
-          <thead className="bg-slate-50 border-b border-gray-500/80">
-            <tr>
-              <th className="px-4 py-3 text-left">#</th>
-              <th className="px-4 py-3 text-left">Label</th>
-              <th className="px-4 py-3 text-left">Niveau</th>
-              <th className="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200/80">
-            {loading ? <tr><td colSpan={4} className="p-8 text-center">Chargement...</td></tr> :
-            filtered.length === 0 ? <tr><td colSpan={4} className="p-8 text-center">Aucune matière</td></tr> :
-            filtered.map((m,i)=>(
-              <tr key={m.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3">{i+1}</td>
-                <td className="px-4 py-3">{m.label}</td>
-                <td className="px-4 py-3">{m.niveau}</td>
-                <td className="px-4 py-3 text-right">
-                  <div className="inline-flex gap-2">
-                    <button onClick={()=>openEdit(m)} className="p-2 rounded hover:bg-slate-100"><Edit size={16}/></button>
-                    <button onClick={() => {
-                        setDeleteTarget(m);
-                        setDeleteOpen(true);
-                    }} className="p-2 rounded hover:bg-red-50 text-red-600"><Trash2 size={16}/></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {loading ? (
+          <div className="p-8 text-center">Chargement...</div>
+        ) : (
+          <DataTable
+            columns={columns}
+            rows={rowsForTable}
+            initialPageSize={5}
+            rowsPerPageOptions={[5, 10, 25]}
+            dense={false}
+            onRowClick={(row) => openEdit(row)}
+          />
+      )}
 
       <Modal open={modalOpen} onClose={()=>setModalOpen(false)} title={editing?.id ? "Modifier matière" : "Créer matière"}>
         {editing && (
