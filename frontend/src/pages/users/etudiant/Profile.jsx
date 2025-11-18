@@ -147,19 +147,16 @@ export default function Profile() {
                 </Typography>
               </Box>
 
-              {/* Niveau (si étudiant) */}
-              {user.niveau && (
-                <Box>
-                  <Typography variant="subtitle2" sx={{ color: "#666", mb: 0.5 }}>
-                    Niveau
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: "500" }}>
-                    {user.niveau}
-                  </Typography>
-                </Box>
-              )}
+              {/* Niveau (si étudiant ou avec donnée) */}
+              <Box>
+                <Typography variant="subtitle2" sx={{ color: "#666", mb: 0.5 }}>
+                  Niveau
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: "500" }}>
+                  {user.niveau || "Non défini"}
+                </Typography>
+              </Box>
 
-              {/* Created At */}
               <Box>
                 <Typography variant="subtitle2" sx={{ color: "#666", mb: 0.5 }}>
                   Compte créé le

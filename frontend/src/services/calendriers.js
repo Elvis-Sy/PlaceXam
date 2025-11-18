@@ -11,4 +11,4 @@ export const updateCalendrier = (id, payload) =>
 export const deleteCalendrier = (id) =>
   axios.delete(`/calendriers/${id}`).then((r) => r.data || r);
 export const getCalendriersByNiveau = (niveau) =>
-  axios.get(`/calendriers/niveau/${niveau}`).then((r) => r.data || r);
+  axios.get(`/calendriers/${niveau}`).then((r) => r.data || r);

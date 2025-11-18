@@ -272,8 +272,8 @@ export default function Calendriers() {
                   </div>
 
                   {events.length > 0 && (
-                    <div className="absolute top-2 left-2">
-                      <span className="inline-flex items-center justify-center bg-indigo-600 text-white text-xs px-2 py-0.5 rounded-full">{events.length}</span>
+                    <div className="absolute top-2 right-2 inline-flex items-center justify-center bg-indigo-600 text-white text-xs font-bold px-2 py-0.5 rounded-full h-5 min-w-5 flex-shrink-0">
+                      {events.length}
                     </div>
                   )}
                 </div>
@@ -283,7 +283,7 @@ export default function Calendriers() {
         </div>
       </div>
 
-      {/* Schedule modal — same as DashboardEtudiant */}
+      {/* Schedule modal — hour-by-hour view */}
       {selectedDay && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white border rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-auto">
@@ -295,105 +295,96 @@ export default function Calendriers() {
             </div>
 
             <div className="p-4">
-              <div className="grid grid-cols-12 gap-4">
-                <div className="col-span-2">
-                  {(() => {
-                    const evts = eventsByDay[selectedDay] ?? [];
-                    const startHours = evts.length ? evts.map((ev) => ev.start.getHours() + ev.start.getMinutes() / 60) : [];
-                    const endHours = evts.length ? evts.map((ev) => ev.end.getHours() + ev.end.getMinutes() / 60) : [];
+              {(() => {
+                const evts = eventsByDay[selectedDay] ?? [];
+                
+                // Helper: Get exams grouped by hour
+                const getExamsPerHour = () => {
+                  if (!evts.length) return {};
+                  const hourMap = {};
+                  evts.forEach((evt) => {
+                    const startHour = evt.start.getHours();
+                    const endHour = evt.end.getHours();
+                    const endMinutes = evt.end.getMinutes();
+                    const finalHour = endMinutes > 0 ? endHour : endHour - 1;
+                    
+                    for (let h = startHour; h <= finalHour; h++) {
+                      if (!hourMap[h]) hourMap[h] = [];
+                      hourMap[h].push(evt);
+                    }
+                  });
+                  return hourMap;
+                };
 
-                    const minEvent = startHours.length ? Math.min(...startHours) : 7;
-                    const maxEvent = endHours.length ? Math.max(...endHours) : 19;
+                // Helper: Get color by niveau
+                const getNiveauColor = (niveau) => {
+                  const colors = {
+                    "L1": { bg: "bg-blue-100", border: "border-blue-400", text: "text-blue-900" },
+                    "L2": { bg: "bg-purple-100", border: "border-purple-400", text: "text-purple-900" },
+                    "L3": { bg: "bg-green-100", border: "border-green-400", text: "text-green-900" },
+                    "M1": { bg: "bg-orange-100", border: "border-orange-400", text: "text-orange-900" },
+                    "M2": { bg: "bg-red-100", border: "border-red-400", text: "text-red-900" },
+                  };
+                  return colors[niveau] || { bg: "bg-slate-100", border: "border-slate-400", text: "text-slate-900" };
+                };
 
-                    const dayStart = Math.max(0, Math.floor(Math.min(minEvent, 7)));
-                    const dayEnd = Math.min(24, Math.ceil(Math.max(maxEvent, 19)));
-                    const totalHours = Math.max(1, dayEnd - dayStart);
+                const hourMap = getExamsPerHour();
+                const allHours = Array.from({ length: 12 }, (_, i) => 7 + i);
 
-                    const hoursArray = Array.from({ length: totalHours }, (_, i) => dayStart + i);
+                return (
+                  <div className="space-y-2 max-w-2.5xl">
+                    {allHours.map((hour) => {
+                      const examsAtHour = hourMap[hour] || [];
+                      const uniqueExams = Array.from(
+                        new Map(examsAtHour.map((e) => [e.id, e])).values()
+                      );
 
-                    return hoursArray.map((h) => (
-                      <div key={h} className={`h-12 flex items-center ${h === 12 ? "text-center text-slate-400 italic" : ""}`}>
-                        {h === 12 ? "12:00 - 13:00" : `${String(h).padStart(2, "0")}:00`}
-                      </div>
-                    ));
-                  })()}
-                </div>
+                      if (!uniqueExams.length) {
+                        return (
+                          <div key={`hour-${hour}`} className="flex gap-2 items-stretch">
+                            <div className="w-16 bg-white border border-gray-300 rounded px-2 py-2 text-sm font-semibold text-slate-700 flex items-center justify-center flex-shrink-0">
+                              {String(hour).padStart(2, "0")}:00
+                            </div>
+                            <div className="flex-1 bg-white border border-gray-300 rounded transition-transform hover:scale-y-110 origin-left" />
+                          </div>
+                        );
+                      }
 
-                <div className="col-span-10 relative">
-                  {(() => {
-                    const evts = eventsByDay[selectedDay] ?? [];
-                    const startHours = evts.length ? evts.map((ev) => ev.start.getHours() + ev.start.getMinutes() / 60) : [];
-                    const endHours = evts.length ? evts.map((ev) => ev.end.getHours() + ev.end.getMinutes() / 60) : [];
+                      return (
+                        <div key={`hour-${hour}`} className="flex gap-2 items-stretch">
+                          <div className="w-16 bg-slate-100 border border-slate-300 rounded px-2 py-2 text-sm font-semibold text-slate-700 flex items-center justify-center flex-shrink-0">
+                            {String(hour).padStart(2, "0")}:00
+                          </div>
 
-                    const minEvent = startHours.length ? Math.min(...startHours) : 7;
-                    const maxEvent = endHours.length ? Math.max(...endHours) : 19;
-
-                    const dayStart = Math.max(0, Math.floor(Math.min(minEvent, 7)));
-                    const dayEnd = Math.min(24, Math.ceil(Math.max(maxEvent, 19)));
-                    const totalHours = Math.max(1, dayEnd - dayStart);
-
-                    return (
-                      <div className="relative border rounded-lg overflow-hidden" style={{ minHeight: "12 * 3rem" }}>
-                        <div className="grid" style={{ gridTemplateRows: `repeat(${totalHours}, 3rem)` }}>
-                          {Array.from({ length: totalHours }, (_, i) => {
-                            const h = dayStart + i;
-                            if (h === 12) {
-                              return (
-                                <div key={h} className="border-b flex items-center justify-center bg-yellow-50 text-slate-500">
-                                  Pause déjeuner (12:00 - 13:00)
-                                </div>
-                              );
-                            }
-                            return <div key={h} className="border-b border-gray-200/80" />;
-                          })}
-                        </div>
-
-                        <div className="absolute inset-0 pointer-events-none">
-                          {(() => {
-                            const evts = eventsByDay[selectedDay] ?? [];
-                            return evts.map((ev) => {
-                              const startHours = evts.map((e) => e.start.getHours() + e.start.getMinutes() / 60);
-                              const endHours = evts.map((e) => e.end.getHours() + e.end.getMinutes() / 60);
-                              const minEvent = Math.min(...startHours);
-                              const maxEvent = Math.max(...endHours);
-                              const dayStart = Math.max(0, Math.floor(Math.min(minEvent, 7)));
-                              const dayEnd = Math.min(24, Math.ceil(Math.max(maxEvent, 19)));
-                              const totalHours = Math.max(1, dayEnd - dayStart);
-
-                              const startHour = ev.start.getHours() + ev.start.getMinutes() / 60;
-                              const endHour = ev.end.getHours() + ev.end.getMinutes() / 60;
-
-                              const topPercent = ((startHour - dayStart) / totalHours) * 100;
-                              const heightPercent = ((endHour - startHour) / totalHours) * 100;
-                              const now = new Date();
-                              const passed = ev.end < now;
-                              const colorBg = passed ? "bg-red-100" : "bg-emerald-100";
-                              const colorText = passed ? "text-red-800" : "text-emerald-800";
+                          <div className="flex gap-1 flex-1 transition-transform hover:scale-y-110 origin-left">
+                            {uniqueExams.map((exam) => {
+                              const color = getNiveauColor(exam.exam?.Matiere?.niveau || "default");
+                              const timeStr = `${String(exam.start.getHours()).padStart(2, "0")}:${String(exam.start.getMinutes()).padStart(2, "0")} - ${String(exam.end.getHours()).padStart(2, "0")}:${String(exam.end.getMinutes()).padStart(2, "0")}`;
 
                               return (
                                 <div
-                                  key={ev.id}
-                                  className={`absolute left-2 right-2 rounded-md p-2 shadow pointer-events-auto transform hover:scale-[1.01] transition`}
-                                  style={{
-                                    top: `${topPercent}%`,
-                                    height: `${Math.max(2, heightPercent)}%`,
-                                  }}
-                                  title={`${ev.exam?.label ?? ev.exam?.matiere?.label ?? "Examen"} ${ev.start.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`}
+                                  key={exam.id}
+                                  className={`flex-1 ${color.bg} ${color.border} border-2 rounded px-3 py-2`}
                                 >
-                                  <div className={`${colorBg} ${colorText} px-2 py-1 rounded-md font-semibold`}>
-                                    <div className="text-sm">{ev.exam?.label ?? ev.exam?.matiere?.label ?? "Examen"}</div>
-                                    <div className="text-xs">{ev.start.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} - {ev.end.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
+                                  <div className={`${color.text} font-bold text-sm`}>
+                                    {exam.exam?.Matiere?.label || exam.exam?.label || "Examen"}
+                                  </div>
+                                  <div className={`${color.text} text-xs`}>
+                                    {exam.exam?.Matiere?.niveau || "N/A"}
+                                  </div>
+                                  <div className={`${color.text} text-xs opacity-80`}>
+                                    {timeStr}
                                   </div>
                                 </div>
                               );
-                            });
-                          })()}
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
