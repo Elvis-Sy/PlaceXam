@@ -6,6 +6,7 @@ import {
   getCalendrierById,
   updateCalendrier,
   deleteCalendrier,
+  getCalendrierByNiveau,
 } from "../controllers/calendrierController.js";
 
 const calendrierRouter = express.Router();
@@ -13,6 +14,10 @@ calendrierRouter.use(authenticate);
 
 // Accès pour touts les utilisateurs authentifiés
 calendrierRouter.get("/", getAllCalendriers);
+
+//Accès pour tous les étudiants authentifiés
+calendrierRouter.get("/:niveau", authorizeRoles("etudiant"), getCalendrierByNiveau);
+
 
 // Les accès administrateur
 calendrierRouter.post("/", authorizeRoles("admin"), createCalendrier);

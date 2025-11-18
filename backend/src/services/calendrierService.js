@@ -161,4 +161,19 @@ export class CalendrierService {
         combined.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
         return combined;
     }
+
+    /**
+   * Récupérer tous les calendriers filtrés par niveau (matière.niveau)
+   */
+  static async getCalendriersByNiveau(niveau) {
+    if (!niveau) return await this.getAllCalendriers();
+    // reuse the method that returns persisted + virtual entries
+    const all = await this.getAllCalendriers();
+    return all.filter((c) => {
+      const exam = c.Exam ?? c.exam ?? null;
+      const matiere = exam?.Matiere ?? exam?.matiere ?? null;
+      const examNiveau = matiere?.niveau ?? null;
+      return examNiveau === niveau;
+    });
+  }
 }

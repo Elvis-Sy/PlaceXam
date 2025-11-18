@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { getAllCalendriers } from "../../../services/calendriers.js";
+import { getAllCalendriers, getCalendriersByNiveau } from "../../../services/calendriers.js";
+import { useAuth } from "../../../hooks/useAuth.jsx"; // or AuthContext hook path
 
 function Modal({ open, onClose, title, children }) {
   if (!open) return null;
@@ -81,6 +82,7 @@ function buildMonthMatrix(year, month) {
 }
 
 export default function Calendriers() {
+  const { user } = useAuth();
   const [current, setCurrent] = useState(() => startOfMonth(new Date()));
   const [calendriers, setCalendriers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -93,12 +95,12 @@ export default function Calendriers() {
 
   useEffect(() => {
     fetchCalendriers();
-  }, []);
+  }, [user]);
 
   async function fetchCalendriers() {
     setLoading(true);
     try {
-      const res = await getAllCalendriers();
+      const res = user?.niveau ? await getCalendriersByNiveau(user.niveau) : await getAllCalendriers();
       const list = res?.data ?? res ?? [];
       setCalendriers(Array.isArray(list) ? list : list?.calendriers ?? []);
     } catch (err) {
