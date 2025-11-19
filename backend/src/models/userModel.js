@@ -20,10 +20,22 @@ const User = sequelize.define("User", {
         unique: true, 
         allowNull: false 
     },
+    niveau: { 
+        type: DataTypes.ENUM("L1", "L2", "L3", "M1", "M2"), 
+        allowNull: true 
+    },
     role: { 
       type: DataTypes.ENUM("admin", "etudiant", "surveillant"), 
       allowNull: false 
     },
+    resetPasswordToken: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    resetPasswordExpires: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    }
 });
 
 // Creation d'un utilisateur admin à la creation des tables

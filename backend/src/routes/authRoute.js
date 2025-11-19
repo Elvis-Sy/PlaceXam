@@ -4,15 +4,23 @@ import {
     getProfil,
     loginByEmail,
     refreshToken,
-    signupByEmail
+    signupByEmail,
+    forgotPassword,
+    resetPassword,
+    changePassword
 } from "../controllers/authController.js";
 
 const authRouter = express.Router();
 
+// Routes publiques
 authRouter.post("/signup", signupByEmail);
 authRouter.post("/login", loginByEmail);
 authRouter.post("/refresh-token", refreshToken);
+authRouter.post("/forgot-password", forgotPassword);
+authRouter.post("/reset-password", resetPassword);
 
-authRouter.get("/profile", authenticate, getProfil); // Necessite d'être connecté
+// Routes protégées (authentifiées)
+authRouter.get("/profile", authenticate, getProfil);
+authRouter.post("/change-password", authenticate, changePassword);
 
 export default authRouter;
